@@ -3,7 +3,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
-group 'io.NamePlugin.thedivazo'
+group 'io.DiceSystem.thedivazo'
 version "1.0"
 
 compileJava.options.encoding = 'UTF-8' // устанавливает кодировку для компилируемого кода
@@ -20,14 +20,14 @@ repositories {
     maven { url = "https://hub.spigotmc.org/nexus/content/groups/public/" }
 }
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
 
 compileJava {
     options.compilerArgs += ["-parameters"]
     options.fork = true
     options.forkOptions.executable = "C:\\Program Files\\Java\\jdk-17.0.3.1\\bin\\javac.exe"
-    options.setDebug(false);
 }
 
 dependencies {

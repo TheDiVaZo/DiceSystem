@@ -6,7 +6,7 @@ import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import thedivazo.NamePlugin;
+import thedivazo.DiceSystem;
 import thedivazo.utils.ConfigUtils;
 
 import java.io.BufferedReader;
@@ -20,7 +20,7 @@ import static org.bukkit.Bukkit.getServer;
 public class ConfigManager {
 
     @Getter
-    private final NamePlugin plugin;
+    private final DiceSystem plugin;
     private FileConfiguration fileConfig;
     @Getter
     private ConfigUtils configUtils;
@@ -34,7 +34,7 @@ public class ConfigManager {
     @Getter
     private Permission permissionVault = null;
 
-    public ConfigManager(NamePlugin plugin) {
+    public ConfigManager(DiceSystem plugin) {
         this.plugin = plugin;
         this.fileConfig = plugin.getConfig();
         this.configUtils = new ConfigUtils(fileConfig);

@@ -2,7 +2,7 @@ package thedivazo.utils;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.entity.Player;
-import thedivazo.NamePlugin;
+import thedivazo.DiceSystem;
 
 
 import java.util.*;
@@ -125,7 +125,7 @@ public class StringUtil {
     }
 
     public static String setPlaceholders(Player player, String text) {
-        if(NamePlugin.getConfigManager().isPAPILoaded() && text!=null) text = PlaceholderAPI.setPlaceholders(player, text);
+        if(DiceSystem.getConfigManager().isPAPILoaded() && text!=null) text = PlaceholderAPI.setPlaceholders(player, text);
         return text;
     }
 }

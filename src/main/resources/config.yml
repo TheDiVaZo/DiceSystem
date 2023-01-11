@@ -1,0 +1,8 @@
+version: 1.0
+
+sets:
+  condition1: "
+    EQUIP(SLOT:ITEM_1) || 
+  "
+
+  condition2: "$condition1 && EQUIP(SLOT:D1)"

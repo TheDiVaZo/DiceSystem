@@ -1,7 +1,7 @@
 package thedivazo.utils;
 
 import net.md_5.bungee.api.ChatColor;
-import thedivazo.NamePlugin;
+import thedivazo.DiceSystem;
 
 
 import java.awt.*;
@@ -136,7 +136,7 @@ public class StringColorUtils {
 
     public static String ofText(String message) {
         message = ChatColor.translateAlternateColorCodes('&', message);
-        if (NamePlugin.getVersion() < 1.16f) {
+        if (DiceSystem.getVersion() < 1.16f) {
             return message;
         }
         Matcher match = HEX_PAT.matcher(message);

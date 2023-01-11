@@ -3,7 +3,7 @@ package thedivazo.metrics;
 
 import org.bstats.bukkit.Metrics;
 import org.bstats.charts.DrilldownPie;
-import thedivazo.NamePlugin;
+import thedivazo.DiceSystem;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,9 +12,9 @@ public class MetricsManager {
 
     public static final int SERVICE_ID = 14530;
 
-    private final NamePlugin plugin;
+    private final DiceSystem plugin;
 
-    public MetricsManager(NamePlugin plugin) {
+    public MetricsManager(DiceSystem plugin) {
         this.plugin = plugin;
         enableMetrics();
     }

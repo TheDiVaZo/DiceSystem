@@ -25,28 +25,28 @@ import java.util.regex.Pattern;
 //})
 @Author(value = "TheDiVaZo")
 @ApiVersion(value = ApiVersion.Target.v1_13)
-public class NamePlugin extends JavaPlugin {
+public class DiceSystem extends JavaPlugin {
 
     private PaperCommandManager manager = new PaperCommandManager(this);
     private static ConfigManager configManager;
 
     public static ConfigManager getConfigManager() {
-        return NamePlugin.configManager;
+        return DiceSystem.configManager;
     }
 
-    public static NamePlugin getInstance() {
-        return JavaPlugin.getPlugin(NamePlugin.class);
+    public static DiceSystem getInstance() {
+        return JavaPlugin.getPlugin(DiceSystem.class);
     }
 
     private static void setConfigManager(ConfigManager configManager) {
-        NamePlugin.configManager = configManager;
+        DiceSystem.configManager = configManager;
     }
 
     @Override
     public void onEnable() {
         api.logging.Logger.init(new JULHandler(getLogger()));
         api.logging.Logger.info("Starting...");
-        setConfigManager(new ConfigManager(NamePlugin.getInstance()));
+        setConfigManager(new ConfigManager(DiceSystem.getInstance()));
         checkPluginVersion();
         new MetricsManager(this);
         registerEvents();
