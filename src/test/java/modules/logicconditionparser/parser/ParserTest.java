@@ -1,27 +1,24 @@
-package modules.logicconditionparser.lexer;
+package modules.logicconditionparser.parser;
 
 import api.logging.Logger;
 import api.logging.handlers.JULHandler;
+import modules.logicconditionparser.lexer.Lexer;
+import modules.logicconditionparser.lexer.Token;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class LexerTest {
+class ParserTest {
 
     @Test
-    void tokenize1() {
+    public void parse() throws Exception {
         Logger.init(new JULHandler(java.util.logging.Logger.getGlobal()));
         Lexer lexer = new Lexer();
         lexer.addToken("!", Token.UNARY_OPERATION);
         lexer.addToken("&&", Token.BINARY_OPERATION);
         lexer.addToken("||", Token.BINARY_OPERATION);
-
-        String code = "name1|| name2 && !name3 && name4 && name5";
-        String fS = "";
-        for (Lexeme lexeme : lexer.tokenize(code)) {
-            Logger.info(1);
-            fS += "\n"+(lexeme.getToken().name() + ": " + lexeme.getSign());
-        }
-        Logger.info(fS);
+        System.out.println(lexer.printPriorityList());
+        System.out.println(Parser.parse(lexer.tokenize("!cond1 && cond2 || !cond3")));
     }
+
 }

@@ -11,10 +11,13 @@ import java.beans.ConstructorProperties;
 public class Lexeme {
 
     @Getter
-    public final String sign;
+    private final String sign;
 
     @Getter
-    public final Token token;
+    private final Token token;
+
+    @Getter
+    private final int priority;
 
 
 

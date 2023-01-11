@@ -2,22 +2,29 @@ package modules.logicconditionparser.lexer;
 
 import thedivazo.utils.MatcherWrapper;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Lexer {
 
-    private Map<String, Token> tokens = new HashMap<>();
+    private Map<String, Token> tokens = new LinkedHashMap<>();
 
     public void addToken(String sign, Token token) {
         tokens.put(sign, token);
     }
     public void removeToken(String sign) {
         tokens.remove(sign);
+    }
+
+    public String printPriorityList() {
+        String result = "";
+        int i = 0;
+        for (String s : tokens.keySet()) {
+            result += s + ": "+i + "\n";
+            i++;
+        }
+        return result;
     }
 
     public List<Lexeme> tokenize(String code) {
@@ -31,16 +38,19 @@ public class Lexer {
             if((i % 2 == 0) && i/2 < remains.length) {
                 String remainder = remains[i/2].trim();
                 if(remainder.length()!=0) {
-                    lexemeList.add(new Lexeme(remainder, Token.CONDITION_NAME));
+                    lexemeList.add(new Lexeme(remainder, Token.CONDITION_NAME, 0));
                 }
             }
             else if((i % 2 != 0) && i/2 < signs.length) {
-                String sign = signs[i/2].trim();
-                for (Map.Entry<String, Token> stringTokenEntry : tokens.entrySet()) {
+                String sign = signs[i/2].trim() ;
+                Set<Map.Entry<String, Token>> tokenSet = tokens.entrySet();
+                int priority = 0;
+                for (Map.Entry<String, Token> stringTokenEntry : tokenSet) {
                     if(stringTokenEntry.getKey().equals(sign)) {
-                        lexemeList.add(new Lexeme(sign, stringTokenEntry.getValue()));
+                        lexemeList.add(new Lexeme(sign, stringTokenEntry.getValue(), priority));
                         break;
                     }
+                    else priority++;
                 }
             }
         }
