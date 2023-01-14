@@ -1,61 +1,62 @@
 package modules.logicconditionparser.parser;
 
-import modules.logicconditionparser.lexer.Lexeme;
+import modules.logicconditionparser.lexer.Token;
+import modules.logicconditionparser.lexer.TokenType;
 
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
 public class Parser {
-    public static Node parse(List<Lexeme> lexemeList) throws Exception {
-        Lexeme lexeme = null;
-        int index = 0;
-        if(lexemeList.size()==1) {
-            lexeme = lexemeList.get(0);
+
+    private Parser() {
+    }
+
+    public static Node parseToAST(List<Token> tokenList) throws Exception {
+        if(tokenList.isEmpty()) return null;
+        if(tokenList.get(0).getTokenType().equals(TokenType.CONDITION_NAME)) return new Node(TokenType.CONDITION_NAME, tokenList.get(0).getSign());
+        Token priorityToken = null;
+
+        int flagCompound = 0;
+        for (int i = 0; i < tokenList.size(); i++) {
+            Token currentToken = tokenList.get(i);
+            if (currentToken.getTokenType().equals(TokenType.COMPOUND_OPERATOR_START)) {
+                if(i==0) continue;
+                 else flagCompound++;
+            }
+            if (currentToken.getTokenType().equals(TokenType.COMPOUND_OPERATOR_END)) {
+                if(i == tokenList.size()-1) continue;
+                else flagCompound--;
+            }
+            if (!currentToken.getTokenType().equals(TokenType.CONDITION_NAME) && flagCompound == 0) {
+                if (Objects.isNull(priorityToken)) priorityToken = currentToken;
+                else priorityToken = currentToken.getPriority() < priorityToken.getPriority() ? currentToken : priorityToken;
+            }
         }
-        else if(lexemeList.size()>1) {
-            lexeme = lexemeList.stream().max(Comparator.comparingInt(Lexeme::getPriority)).get();
-            index = lexemeList.indexOf(lexeme);
-        }
-        else return null;
-        switch (lexeme.getToken()) {
-            case CONDITION_NAME -> {
-                NodeCondition nodeCondition = new NodeCondition(NodeType.CONDITION_NAME, null, null, lexeme.getSign());
-                return nodeCondition;
-            }
-            case BINARY_OPERATION -> {
-                NodeOperation nodeOperation = new NodeOperation(NodeType.BINARY_OPERATION, null, null, lexeme.getSign());
-                Node argument1 = parse(lexemeList.subList(0,index));
-                Node argument2 = parse(lexemeList.subList(index+1 == 0 ?0:index+1,lexemeList.size()));
-                if(Objects.isNull(argument1) || Objects.isNull(argument2)) {
-                    throw new Exception("Ошибка аргумента " + lexeme.getSign());
-                }
-                argument1.setNextNode(argument2);
-                nodeOperation.setConditionNodes(argument1);
-                return nodeOperation;
-            }
-            case UNARY_OPERATION -> {
-                NodeOperation nodeOperation = new NodeOperation(NodeType.UNARY_OPERATION, null, null, lexeme.getSign());
-                Node argument2 = parse(lexemeList.subList(index+1 == 0 ?0:index+1,lexemeList.size()));
-                if(Objects.isNull(argument2)) {
-                    throw new Exception("Ошибка аргумента " + lexeme.getSign());
-                }
-                nodeOperation.setConditionNodes(argument2);
-                return nodeOperation;
-            }
-            default -> {throw new UnsupportedOperationException("Такая операция неподдерживается");}
+        if(Objects.isNull(priorityToken)) return null;
+        int index = tokenList.indexOf(priorityToken);
+
+        Node node = new Node(priorityToken.getTokenType(),priorityToken.getSign());
+
+        if (priorityToken.getTokenType() == TokenType.BINARY_OPERATOR) {
+            node.addNextNode(parseToAST(tokenList.subList(0, index)));
+            node.addNextNode(parseToAST(tokenList.subList(index + 1, tokenList.size())));
+        } else if (priorityToken.getTokenType() == TokenType.UNARY_OPERATOR) {
+            node.addNextNode(parseToAST(tokenList.subList(index + 1, tokenList.size())));
         }
 
 
+        return node;
     }
 
 }
 
 /*
+todo:
 !cond1 || !cond2 && cond3
 
 !cond1 && cond2 || cond3
+
+!cond1 || (cond1 && cond2) || cond3
 
 ! - 0
 && - 1

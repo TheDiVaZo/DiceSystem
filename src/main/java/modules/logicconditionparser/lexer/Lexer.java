@@ -1,59 +1,34 @@
 package modules.logicconditionparser.lexer;
 
+
+import org.apache.commons.collections4.map.LinkedMap;
 import thedivazo.utils.MatcherWrapper;
 
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class Lexer {
+    protected static final String CONDITION_NAME = "a-zA-Z0-9_";
 
-    private Map<String, Token> tokens = new LinkedHashMap<>();
+    private LinkedMap<String, TokenType> tokens = new LinkedMap<>();
 
-    public void addToken(String sign, Token token) {
-        tokens.put(sign, token);
+    public void addToken(String sign, TokenType tokenType) {
+        tokens.put(sign, tokenType);
     }
     public void removeToken(String sign) {
         tokens.remove(sign);
     }
 
-    public String printPriorityList() {
-        String result = "";
-        int i = 0;
-        for (String s : tokens.keySet()) {
-            result += s + ": "+i + "\n";
-            i++;
-        }
-        return result;
+    public List<Token> tokenize(String code) {
+        MatcherWrapper matcherWrapper = new MatcherWrapper(getPatternForTokens());
+        return matcherWrapper.matchAll(code).stream().map(this::toLexeme).toList();
     }
 
-    public List<Lexeme> tokenize(String code) {
-        List<Lexeme> lexemeList = new ArrayList<>();
-        code = code.trim();
-        String lexemeRegEx = String.join("|",tokens.keySet().stream().map(Pattern::quote).collect(Collectors.toSet()));
-        MatcherWrapper patternLexeme = new MatcherWrapper(Pattern.compile("("+lexemeRegEx+")"));
-        String[] signs = patternLexeme.matchAll(code).toArray(new String[]{});
-        String[] remains = code.split(patternLexeme.pattern());
-        for (int i = 0; i < signs.length + remains.length; i++) {
-            if((i % 2 == 0) && i/2 < remains.length) {
-                String remainder = remains[i/2].trim();
-                if(remainder.length()!=0) {
-                    lexemeList.add(new Lexeme(remainder, Token.CONDITION_NAME, 0));
-                }
-            }
-            else if((i % 2 != 0) && i/2 < signs.length) {
-                String sign = signs[i/2].trim() ;
-                Set<Map.Entry<String, Token>> tokenSet = tokens.entrySet();
-                int priority = 0;
-                for (Map.Entry<String, Token> stringTokenEntry : tokenSet) {
-                    if(stringTokenEntry.getKey().equals(sign)) {
-                        lexemeList.add(new Lexeme(sign, stringTokenEntry.getValue(), priority));
-                        break;
-                    }
-                    else priority++;
-                }
-            }
-        }
-        return lexemeList;
+    public Pattern getPatternForTokens() {
+        return Pattern.compile("("+ String.join("|", tokens.keySet().stream().map(Pattern::quote).toList()) +")|(["+CONDITION_NAME+"]+)");
+    }
+
+    public Token toLexeme(String operator) {
+        return new Token(operator, tokens.getOrDefault(operator, TokenType.CONDITION_NAME), tokens.indexOf(operator));
     }
 }

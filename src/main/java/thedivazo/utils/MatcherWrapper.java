@@ -3,6 +3,7 @@ package thedivazo.utils;
 import javax.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +27,13 @@ public class MatcherWrapper {
         Matcher matcher = pattern.matcher(input);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
-            result.add(matcher.group());
+            for(int i = 0; i<matcher.groupCount();i++) {
+                String group = matcher.group(i);
+                if(!Objects.isNull(group)) {
+                    result.add(group);
+                    break;
+                }
+            }
         }
         return result;
     }

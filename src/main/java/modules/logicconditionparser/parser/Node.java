@@ -1,50 +1,86 @@
 package modules.logicconditionparser.parser;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import modules.logicconditionparser.lexer.TokenType;
 
-import java.util.Objects;
-
+import javax.annotation.Nullable;
+import java.util.*;
 
 public class Node {
-    public boolean hasNext() {
-        return !Objects.isNull(nextNode);
+    protected String sign;
+    protected TokenType type;
+
+    protected Set<Node> nextNodes = new LinkedHashSet<>();
+    protected Node prevNode = null;
+
+    public Node(TokenType type, String sign) {
+        this.sign = sign;
+        this.type = type;
     }
 
-    public Node(NodeType nodeType, Node nextNode, Node prevNode, String nameNode) {
-        this.nodeType = nodeType;
-        setNextNode(nextNode);
-        setPrevNode(prevNode);
-        this.nameNode = nameNode;
+    public Node(TokenType type, String sign, Node... listNode) {
+        this.sign = sign;
+        this.type = type;
+        for (Node node : listNode) {
+            addNextNode(node);
+        }
     }
 
-    @Getter
-    private NodeType nodeType;
-    @Getter
-    private Node nextNode;
-    public void setNextNode(Node nextNode) {
+    public String getSign() {
+        return sign;
+    }
+
+    public void setSign(String sign) {
+        this.sign = sign;
+    }
+
+    public Node(TokenType type, String sign, List<Node> listNode) {
+        this.sign = sign;
+        this.type = type;
+        for (Node node : listNode) {
+            addNextNode(node);
+        }
+    }
+
+    public TokenType getType() {
+        return type;
+    }
+
+    public Set<Node> getNextNodes() {
+        return Collections.unmodifiableSet(nextNodes);
+    }
+
+    public void addNextNode(Node nextNode) {
         if(Objects.isNull(nextNode)) return;
-        this.nextNode = nextNode;
         nextNode.prevNode = this;
+        nextNodes.add(nextNode);
     }
 
-    @Getter
-    private Node prevNode;
-    public void setPrevNode(Node prevNode) {
-        if(Objects.isNull(prevNode)) return;
+    public void removeNextNode(Node nextNode) {
+        if(nextNodes.contains(nextNode)) {
+            nextNodes.remove(nextNode);
+            nextNode.setPrevNode(null);
+        }
+    }
+
+    public Node getPrevNode() {
+        return prevNode;
+    }
+
+
+    public void setPrevNode(@Nullable Node prevNode) {
+        if(Objects.isNull(prevNode)) {
+            this.prevNode = null;
+            return;
+        }
+        addNextNode(prevNode);
         this.prevNode = prevNode;
-        nextNode.nextNode = this;
     }
-
-    @Getter
-    String nameNode;
 
     @Override
     public String toString() {
-        return "Node{\n" +
-                "nodeType=" + nodeType + "\n" +
-                ", nameNode='" + nameNode + "'\n" +
-                "},\n" +Objects.toString(getNextNode(),"null");
+        return "Node{\n" + "sign='" + sign + "'\n" +
+                "type=" + type + "\n" +
+                "nextNodes=" + String.join("\n", Arrays.stream(nextNodes.toString().split("\n")).map(s -> "   " + s).toList()) + "\n" +
+                "}\n";
     }
 }
