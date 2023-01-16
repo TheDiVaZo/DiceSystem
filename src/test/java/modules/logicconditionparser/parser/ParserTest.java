@@ -17,35 +17,13 @@ class ParserTest {
         lexer.addToken("!", TokenType.UNARY_OPERATOR);
         lexer.addToken("(", TokenType.COMPOUND_OPERATOR_START);
         lexer.addToken(")", TokenType.COMPOUND_OPERATOR_END);
-        System.out.println(Parser.parseToAST(lexer.tokenize("cond1 && (cond2 || !cond3)")));
-    }
-
-    @Test
-    void parseTest2() throws Exception {
-        Logger.init(new JULHandler(java.util.logging.Logger.getGlobal()));
-        Lexer lexer = new Lexer();
-        lexer.addToken("||", TokenType.BINARY_OPERATOR);
-        lexer.addToken("&&", TokenType.BINARY_OPERATOR);
-        lexer.addToken("!", TokenType.UNARY_OPERATOR);
-        lexer.addToken("(", TokenType.COMPOUND_OPERATOR_START);
-        lexer.addToken(")", TokenType.COMPOUND_OPERATOR_END);
-        System.out.println(Parser.parseToAST(lexer.tokenize("((cond2 || !cond3))")));
-    }
-
-    @Test
-    void parseTest3() throws Exception {
-        Logger.init(new JULHandler(java.util.logging.Logger.getGlobal()));
-        Lexer lexer = new Lexer();
-        lexer.addToken("||", TokenType.BINARY_OPERATOR);
-        lexer.addToken("&&", TokenType.BINARY_OPERATOR);
-        lexer.addToken("!", TokenType.UNARY_OPERATOR);
-        lexer.addToken("(", TokenType.COMPOUND_OPERATOR_START);
-        lexer.addToken(")", TokenType.COMPOUND_OPERATOR_END);
         System.out.println(Parser.parseToAST(lexer.tokenize("cond1 && ((cond2 || !cond3))")));
+        System.out.println("-------------------------------------------------");
+        System.out.println(Parser.parseToAST(lexer.tokenize("(((!cond1 && cond2)) || ((cond3 && !cond4)))")));
     }
 
     @Test
-    void parseTest4() throws Exception {
+    void parseErrorTest1() throws Exception {
         Logger.init(new JULHandler(java.util.logging.Logger.getGlobal()));
         Lexer lexer = new Lexer();
         lexer.addToken("||", TokenType.BINARY_OPERATOR);
@@ -53,19 +31,11 @@ class ParserTest {
         lexer.addToken("!", TokenType.UNARY_OPERATOR);
         lexer.addToken("(", TokenType.COMPOUND_OPERATOR_START);
         lexer.addToken(")", TokenType.COMPOUND_OPERATOR_END);
-        System.out.println(Parser.parseToAST(lexer.tokenize("(((((cond1))) && ((cond2 || !cond3))))")));
+        System.out.println("1 " + Parser.parseToAST(lexer.tokenize("()")));
+        System.out.println("2 " + Parser.parseToAST(lexer.tokenize("(")));
+        System.out.println("3 " + Parser.parseToAST(lexer.tokenize("||")));
+        System.out.println("4 " + Parser.parseToAST(lexer.tokenize("&&")));
+        System.out.println("5 " + Parser.parseToAST(lexer.tokenize("(||)")));
     }
 
-    @Test
-    void parseTest5() throws Exception {
-        Logger.init(new JULHandler(java.util.logging.Logger.getGlobal()));
-        Lexer lexer = new Lexer();
-        lexer.addToken("||", TokenType.BINARY_OPERATOR);
-        lexer.addToken("&&", TokenType.BINARY_OPERATOR);
-        lexer.addToken("!", TokenType.UNARY_OPERATOR);
-        lexer.addToken("(", TokenType.COMPOUND_OPERATOR_START);
-        lexer.addToken(")", TokenType.COMPOUND_OPERATOR_END);
-        System.out.println(Parser.parseToAST(lexer.tokenize("cond1 || ")));
-
-    }
 }

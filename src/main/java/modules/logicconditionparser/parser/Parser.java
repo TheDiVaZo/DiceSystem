@@ -3,6 +3,7 @@ package modules.logicconditionparser.parser;
 import modules.logicconditionparser.lexer.Token;
 import modules.logicconditionparser.lexer.TokenType;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class Parser {
@@ -40,7 +41,7 @@ public class Parser {
                 if (compoundOperatorIDMap.get(compoundStart).equals(compoundOperatorIDMap.get(compoundEnd))) {
                     tokenList = tokenList.subList(1, tokenList.size() - 1);
                 } else break;
-            }
+            } else break;
         }
 
         return tokenList;
@@ -50,7 +51,10 @@ public class Parser {
     protected static Token getPriotiryToken(List<Token> tokenList) {
         Token priorityToken = null;
         int flagCompound = 0;
-        if(tokenList.size()==1) return tokenList.get(0);
+        if(tokenList.size()==1) {
+            if(tokenList.get(0).getTokenType().equals(TokenType.CONDITION_NAME)) return tokenList.get(0);
+            else return null;
+        }
         for (int i = 0; i < tokenList.size(); i++) {
             Token currentToken = tokenList.get(i);
             if (currentToken.getTokenType().equals(TokenType.COMPOUND_OPERATOR_START)) flagCompound++;
@@ -63,6 +67,7 @@ public class Parser {
         return priorityToken;
     }
 
+    @Nullable
     public static Node parseToAST(List<Token> tokenList) {
         tokenList = removeExtraCompound(tokenList);
         if(tokenList.isEmpty()) return null;
@@ -74,10 +79,16 @@ public class Parser {
         Node node = new Node(priorityToken.getTokenType(),priorityToken.getSign());
 
         if (priorityToken.getTokenType() == TokenType.BINARY_OPERATOR) {
-            node.addNextNode(parseToAST(tokenList.subList(0, index)));
-            node.addNextNode(parseToAST(tokenList.subList(index + 1, tokenList.size())));
+            Node arg1 = parseToAST(tokenList.subList(0, index));
+            if(Objects.isNull(arg1)) throw new IllegalArgumentException("The left argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
+            Node arg2 = parseToAST(tokenList.subList(index + 1, tokenList.size()));
+            if(Objects.isNull(arg2)) throw new IllegalArgumentException("The right argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
+            node.addNextNode(arg1);
+            node.addNextNode(arg2);
         } else if (priorityToken.getTokenType() == TokenType.UNARY_OPERATOR) {
-            node.addNextNode(parseToAST(tokenList.subList(index + 1, tokenList.size())));
+            Node arg1 = parseToAST(tokenList.subList(index + 1, tokenList.size()));
+            if(Objects.isNull(arg1)) throw new IllegalArgumentException("The right argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
+            node.addNextNode(arg1);
         }
 
         return node;
