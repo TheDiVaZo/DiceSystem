@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import java.beans.ConstructorProperties;
 
-public class IllegalArgumentNumberException extends Exception{
+public class IllegalArgumentNumberException extends ExecuteException {
     public IllegalArgumentNumberException() {
     }
 

@@ -25,7 +25,9 @@ public class Lexer {
     }
 
     public Pattern getPatternForTokens() {
-        return Pattern.compile("("+ String.join("|", tokens.keySet().stream().map(Pattern::quote).toList()) +")|(["+CONDITION_NAME+"]+)");
+        return Pattern.compile("("+ String.join("|", tokens.keySet().stream()
+                .sorted((sign1,sign2)->sign2.length()-sign1.length())
+                .map(Pattern::quote).toList()) +")|(["+CONDITION_NAME+"]+)");
     }
 
     public Token toLexeme(String operator) {

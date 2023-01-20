@@ -2,7 +2,7 @@ package modules.logicconditionparser.exception;
 
 import lombok.AllArgsConstructor;
 
-public class UnknownOperatorException extends Exception{
+public class UnknownOperatorException extends ExecuteException {
     public UnknownOperatorException() {
     }
 

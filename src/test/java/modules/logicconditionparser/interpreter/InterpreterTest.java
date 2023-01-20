@@ -1,20 +1,15 @@
 package modules.logicconditionparser.interpreter;
 
-import modules.logicconditionparser.exception.IllegalArgumentNumberException;
-import modules.logicconditionparser.exception.IllegalConditionException;
-import modules.logicconditionparser.exception.IllegalTokenException;
-import modules.logicconditionparser.exception.UnknownOperatorException;
+import modules.logicconditionparser.exception.*;
 import modules.logicconditionparser.lexer.Lexer;
 import modules.logicconditionparser.lexer.TokenType;
 import modules.logicconditionparser.parser.Parser;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class InterpreterTest {
 
     @Test
-    void execute() throws UnknownOperatorException, IllegalArgumentNumberException, IllegalConditionException, IllegalTokenException {
+    void execute() throws ExecuteException, ParsingException {
         Lexer lexer = new Lexer();
         lexer.addToken("||", TokenType.BINARY_OPERATOR);
         lexer.addToken("&&", TokenType.BINARY_OPERATOR);
@@ -28,10 +23,10 @@ class InterpreterTest {
         interpreter.addCondition("cond3", ()->false);
         interpreter.addCondition("cond4", ()->false);
 
-        interpreter.addOperator("||", (Interpreter.CallbackBinaryOperator) (cond1, cond2) -> cond1 || cond2);
-        interpreter.addOperator("&&", (Interpreter.CallbackBinaryOperator) (cond1, cond2) -> cond1 && cond2);
-        interpreter.addOperator("!", (Interpreter.CallbackUnaryOperator) (cond1) -> !cond1);
+        interpreter.addOperator("||", (BooleanBinaryOperator) (cond1, cond2) -> cond1 || cond2);
+        interpreter.addOperator("&&", (BooleanBinaryOperator) (cond1, cond2) -> cond1 && cond2);
+        interpreter.addOperator("!", (BooleanUnaryOperator) aBoolean -> !aBoolean);
 
-        System.out.println(interpreter.execute(Parser.parseToAST(lexer.tokenize("(cond1 || cond2) || (cond3 || cond4)"))));
+        System.out.println(interpreter.execute(Parser.parseToAST(lexer.tokenize("(()"))));
     }
 }

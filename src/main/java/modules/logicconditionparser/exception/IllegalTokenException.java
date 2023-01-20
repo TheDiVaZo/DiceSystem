@@ -1,6 +1,6 @@
 package modules.logicconditionparser.exception;
 
-public class IllegalTokenException extends Exception{
+public class IllegalTokenException extends ExecuteException{
     public IllegalTokenException() {
     }
 

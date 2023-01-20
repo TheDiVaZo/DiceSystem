@@ -3,7 +3,7 @@ package modules.logicconditionparser.exception;
 import lombok.AllArgsConstructor;
 
 
-public class IllegalConditionException extends Exception {
+public class IllegalConditionException extends ExecuteException {
     public IllegalConditionException() {
     }
 

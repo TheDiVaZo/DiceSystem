@@ -1,5 +1,6 @@
 package modules.logicconditionparser.parser;
 
+import modules.logicconditionparser.exception.ParsingException;
 import modules.logicconditionparser.lexer.Token;
 import modules.logicconditionparser.lexer.TokenType;
 
@@ -29,7 +30,7 @@ public class Parser {
     }
 
     protected static List<Token> removeExtraCompound(List<Token> tokenList) {
-        if(tokenList.isEmpty() || !tokenList.get(0).getTokenType().equals(TokenType.COMPOUND_OPERATOR_START) || !tokenList.get(tokenList.size()-1).getTokenType().equals(TokenType.COMPOUND_OPERATOR_END)) return tokenList;
+        //if(tokenList.isEmpty() || !tokenList.get(0).getTokenType().equals(TokenType.COMPOUND_OPERATOR_START) || !tokenList.get(tokenList.size()-1).getTokenType().equals(TokenType.COMPOUND_OPERATOR_END)) return tokenList;
         Map<Token, Integer> compoundOperatorIDMap = getCompoundOperatorsMapID(tokenList);
         while (true) {
             if(!tokenList.isEmpty()) {
@@ -48,12 +49,11 @@ public class Parser {
 
     }
 
-    protected static Token getPriotiryToken(List<Token> tokenList) {
+    protected static Token getPriotiryToken(List<Token> tokenList) throws ParsingException {
         Token priorityToken = null;
         int flagCompound = 0;
         if(tokenList.size()==1) {
             if(tokenList.get(0).getTokenType().equals(TokenType.CONDITION_NAME)) return tokenList.get(0);
-            else return null;
         }
         for (int i = 0; i < tokenList.size(); i++) {
             Token currentToken = tokenList.get(i);
@@ -64,31 +64,30 @@ public class Parser {
                 else priorityToken = currentToken.getPriority() < priorityToken.getPriority() ? currentToken : priorityToken;
             }
         }
+        if(flagCompound > 0) throw new ParsingException("Operator \"(\" should have a end");
+        if(flagCompound < 0) throw new ParsingException("Operator \")\" should have a start");
         return priorityToken;
     }
 
-    @Nullable
-    public static Node parseToAST(List<Token> tokenList) {
+    public static Node parseToAST(List<Token> tokenList) throws ParsingException {
         tokenList = removeExtraCompound(tokenList);
-        if(tokenList.isEmpty()) return null;
+        if(tokenList.isEmpty()) throw  new ParsingException("Invalid code");
         Token priorityToken = getPriotiryToken(tokenList);
 
-        if(Objects.isNull(priorityToken)) return null;
+        if(Objects.isNull(priorityToken)) throw new ParsingException("No operator or condition found.");
         int index = tokenList.indexOf(priorityToken);
 
         Node node = new Node(priorityToken.getTokenType(),priorityToken.getSign());
 
         if (priorityToken.getTokenType() == TokenType.BINARY_OPERATOR) {
-            Node arg1 = parseToAST(tokenList.subList(0, index));
-            if(Objects.isNull(arg1)) throw new IllegalArgumentException("The left argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
-            Node arg2 = parseToAST(tokenList.subList(index + 1, tokenList.size()));
-            if(Objects.isNull(arg2)) throw new IllegalArgumentException("The right argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
-            node.addNextNode(arg1);
-            node.addNextNode(arg2);
+            List<Token> arg1 = tokenList.subList(0, index);
+            List<Token> arg2 = tokenList.subList(index + 1, tokenList.size());
+
+            if(!arg1.isEmpty()) node.addNextNode(parseToAST(arg1));
+            if(!arg2.isEmpty()) node.addNextNode(parseToAST(arg2));
         } else if (priorityToken.getTokenType() == TokenType.UNARY_OPERATOR) {
-            Node arg1 = parseToAST(tokenList.subList(index + 1, tokenList.size()));
-            if(Objects.isNull(arg1)) throw new IllegalArgumentException("The right argument for the operator \""+priorityToken.getSign()+"\" is invalid. Check for typos.");
-            node.addNextNode(arg1);
+            List<Token> arg2 = tokenList.subList(index + 1, tokenList.size());
+            if(!arg2.isEmpty()) node.addNextNode(parseToAST(arg2));
         }
 
         return node;
