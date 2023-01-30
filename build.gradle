@@ -50,6 +50,10 @@ dependencies {
     compileOnly 'me.clip:placeholderapi:2.10.10'
 
     implementation 'org.bstats:bstats-bukkit:3.0.0'
+
+    implementation 'org.graalvm.js:js-scriptengine:22.0.0'
+
+    implementation 'org.graalvm.js:js:22.0.0'
 }
 
 test {

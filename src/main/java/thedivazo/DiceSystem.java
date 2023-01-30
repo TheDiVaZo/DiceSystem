@@ -10,6 +10,8 @@ import org.bukkit.plugin.java.annotation.plugin.author.Author;
 import thedivazo.config.ConfigManager;
 import thedivazo.metrics.MetricsManager;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,7 +29,7 @@ import java.util.regex.Pattern;
 @ApiVersion(value = ApiVersion.Target.v1_13)
 public class DiceSystem extends JavaPlugin {
 
-    private PaperCommandManager manager = new PaperCommandManager(this);
+    private final PaperCommandManager manager = new PaperCommandManager(this);
     private static ConfigManager configManager;
 
     public static ConfigManager getConfigManager() {

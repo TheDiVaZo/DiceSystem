@@ -7,13 +7,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import thedivazo.DiceSystem;
+import thedivazo.conditionhandler.condition.Condition;
 import thedivazo.utils.ConfigUtils;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.bukkit.Bukkit.getServer;
 
@@ -33,6 +38,8 @@ public class ConfigManager {
 
     @Getter
     private Permission permissionVault = null;
+
+    private Map<String, ? extends Condition> conditionTypeMap = new HashMap<>();
 
     public ConfigManager(DiceSystem plugin) {
         this.plugin = plugin;

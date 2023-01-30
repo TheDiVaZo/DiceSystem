@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConfigUtils {
+
     private ConfigurationSection fileConfig;
 
     public ConfigUtils(ConfigurationSection fileConfig) {
