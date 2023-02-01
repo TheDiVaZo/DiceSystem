@@ -2,27 +2,36 @@ package thedivazo.conditionhandler.exception;
 
 /**
  * Родоначальник всех ошибок в моем парсере.
- * Имеет все конструкторы по умолчанию, может еще добавлю в него что-нибудь.
  */
 public class ConditionException extends Exception {
 
-
-    public ConditionException() {
-    }
 
     public ConditionException(String message) {
         super(message);
     }
 
-    public ConditionException(String message, Throwable cause) {
-        super(message, cause);
+    /**
+     * Эта функция просто ставит перед знаком "^" нужное кол-во пробелов.
+     * @param countSpace кол-во пробелов, которое нужно поставить
+     * @return Возвращает строку типа "     ^" которая в контексте ошибки должна указывать на место, где произошла ошибка
+     */
+    protected static String getSpace(int countSpace) {
+        String format = "%"+countSpace+"s^";
+        return String.format(format,"");
     }
 
-    public ConditionException(Throwable cause) {
-        super(cause);
+
+    /**
+     * @param message Дополнительная информация.
+     * @param position Позиция символа в коде, на котором произошла ошибка
+     * @param invalidCode Код, в котором произошла ошибка
+     */
+    public ConditionException(String message, int position, String invalidCode) {
+        super(
+                message + "\n"
+                + invalidCode + "\n"
+                + getSpace(position)
+        );
     }
 
-    public ConditionException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 }
