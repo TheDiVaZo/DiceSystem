@@ -16,7 +16,7 @@ public class ConditionException extends Exception {
      * @return Возвращает строку типа "     ^" которая в контексте ошибки должна указывать на место, где произошла ошибка
      */
     protected static String getSpace(int countSpace) {
-        String format = "%"+countSpace+"s^";
+        String format = "%"+(countSpace+1)+"s^";
         return String.format(format,"");
     }
 

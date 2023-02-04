@@ -16,11 +16,11 @@ class LexerTest {
         Lexer lexer = new Lexer();
         lexer.putOperator(Pattern.quote("&&"), TokenType.BINARY_OPERATION);
         lexer.putOperator(Pattern.quote("||"), TokenType.BINARY_OPERATION);
-        lexer.putOperator(Pattern.quote("|"), TokenType.BINARY_OPERATION);
+        //lexer.putOperator(Pattern.quote("|"), TokenType.BINARY_OPERATION);
         lexer.putOperator(Pattern.quote("!"), TokenType.UNARY_OPERATION);
         lexer.putOperator("[0-9a-zA-Z_\\-]+", TokenType.CONDITION);
         lexer.putOperator("[\t,\s,\n]+", TokenType.SPACE);
-        System.out.println(Arrays.toString(new List[]{lexer.analyze("cond1 || %% cond2 && cond3 ")}));;
+        System.out.println(Arrays.toString(new List[]{lexer.analyze("cond1 ||   cond2 && cond3 ")}));;
     }
 
     @Test

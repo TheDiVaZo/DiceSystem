@@ -53,7 +53,7 @@ public class Lexer {
         StringBuilder sliceCode = new StringBuilder(code);
         int position = 0;
         while(true) {
-            if(sliceCode.isEmpty()) return result;
+            if(sliceCode.isEmpty()) break;
             String currentRegEx = null;
             String token = null;
             TokenType tokenType = null;
@@ -68,12 +68,14 @@ public class Lexer {
             }
             if(Objects.isNull(token) || Objects.isNull(tokenType)) {
                 token = sliceCode.substring(0,1);
-                throw new SyntaxException(token, position, code);
+                throw new SyntaxException(String.format("Unknown token: %s",token), position, code);
             }
             result.add(new Token(tokenType, token, position));
             position += token.length();
             sliceCode.replace(0, token.length(), "");
         }
+        result.add(new Token(TokenType.EOF,"", code.length()));
+        return result;
     }
 
 

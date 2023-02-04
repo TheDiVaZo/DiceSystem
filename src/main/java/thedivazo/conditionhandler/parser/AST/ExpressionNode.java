@@ -3,8 +3,6 @@ package thedivazo.conditionhandler.parser.AST;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 
@@ -32,4 +30,10 @@ public abstract class ExpressionNode {
 
     public abstract void addNextNode(ExpressionNode node);
 
+    public abstract Set<ExpressionNode> getNextNodes();
+
+    @Override
+    public String toString() {
+        return getName()+"\n";
+    }
 }

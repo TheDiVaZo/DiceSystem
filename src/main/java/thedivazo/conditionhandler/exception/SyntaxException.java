@@ -4,12 +4,12 @@ public class SyntaxException extends ConditionException {
 
 
     /**
-     * @param invalidCharacters Неизвестный токен
+     * @param message Сообщение ошибки.
      * @param position Позиция данного токена в коде
      * @param invalidCode Код, где содержится неизвестный токен.
      */
-    public SyntaxException(String invalidCharacters, int position, String invalidCode) {
-        super(String.format("Unknown token \"%s\"", invalidCharacters), position, invalidCode);
+    public SyntaxException(String message, int position, String invalidCode) {
+        super(message, position, invalidCode);
     }
 
 }

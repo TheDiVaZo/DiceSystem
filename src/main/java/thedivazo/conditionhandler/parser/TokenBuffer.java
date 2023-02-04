@@ -1,31 +1,43 @@
 package thedivazo.conditionhandler.parser;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import thedivazo.conditionhandler.lexer.Token;
 
+import java.util.Collections;
 import java.util.List;
 
+@RequiredArgsConstructor
 public class TokenBuffer {
+    protected final List<Token> tokenList;
 
+    @Getter
     protected int pos = 0;
-    protected List<Token> tokenList;
 
-    public TokenBuffer(List<Token> tokenList) {
-        this.tokenList = tokenList;
+    public boolean hasNext() {
+        return tokenList.size() > (pos+1);
+    }
+
+    public boolean hasPrev() {
+        return (pos-1) >= 0;
     }
 
     public Token next() {
-        return tokenList.get(pos++);
+        if(hasNext()) return tokenList.get(pos++);
+        else return null;
     }
 
-    public Token back() {
-        return tokenList.get(pos <= 0 ? 0 : pos--);
+    public Token prev() {
+        if(hasPrev()) return tokenList.get(pos--);
+        else return null;
     }
 
-    public int getPos() {
-        return pos;
+    public List<Token> getTokenList() {
+        return Collections.unmodifiableList(tokenList);
     }
 
-    public boolean hasNext() {
-        return tokenList.size() > pos+1;
+    public Token current() {
+        return tokenList.get(pos);
     }
 }
