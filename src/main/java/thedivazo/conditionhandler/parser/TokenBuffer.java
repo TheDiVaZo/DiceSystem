@@ -1,6 +1,5 @@
 package thedivazo.conditionhandler.parser;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import thedivazo.conditionhandler.lexer.Token;

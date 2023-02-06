@@ -1,6 +1,7 @@
 package thedivazo.conditionhandler.parser.AST;
 
 import java.util.Collections;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -17,22 +18,17 @@ public class ConditionNode extends ExpressionNode {
 
     @Override
     public void addNextNode(ExpressionNode node) {
-        setNodes.add(node);
+        throw new UnsupportedOperationException("Condition don't have next node");
     }
 
     @Override
-    public Set<ExpressionNode> getNextNodes() {
-        return Collections.unmodifiableSet(setNodes);
+    public Deque<ExpressionNode> getNextNodes() {
+        throw new UnsupportedOperationException("Condition don't have next node");
     }
 
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder(name+"\n");
-        if(!setNodes.isEmpty()) {
-            for (ExpressionNode node : setNodes) {
-                result.append("  ").append(String.join("   \n", node.toString().split("\n"))).append("\n").append("\n");
-            }
-        }
         return result.toString();
     }
 }

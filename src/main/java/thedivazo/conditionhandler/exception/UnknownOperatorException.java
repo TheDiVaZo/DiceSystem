@@ -1,6 +1,8 @@
 package thedivazo.conditionhandler.exception;
 
-public class UnknownOperatorException extends ConditionException{
+import thedivazo.conditionhandler.condition.Condition;
+
+public class UnknownOperatorException extends ConditionException {
     public UnknownOperatorException(String message) {
         super(message);
     }

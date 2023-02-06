@@ -3,6 +3,7 @@ package thedivazo.conditionhandler.parser.AST;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Deque;
 import java.util.Set;
 
 
@@ -30,7 +31,7 @@ public abstract class ExpressionNode {
 
     public abstract void addNextNode(ExpressionNode node);
 
-    public abstract Set<ExpressionNode> getNextNodes();
+    public abstract Deque<ExpressionNode> getNextNodes();
 
     @Override
     public String toString() {

@@ -3,7 +3,6 @@ package thedivazo.conditionhandler.parser;
 import org.junit.jupiter.api.Test;
 import thedivazo.conditionhandler.exception.FanoConditionException;
 import thedivazo.conditionhandler.exception.SyntaxException;
-import thedivazo.conditionhandler.exception.UnknownOperatorException;
 import thedivazo.conditionhandler.lexer.Lexer;
 import thedivazo.conditionhandler.lexer.TokenType;
 
@@ -33,6 +32,6 @@ class ParserTest {
         lexer.putOperator("[\t,\s,\n]+", TokenType.SPACE);
         Parser parser = new Parser();
         parser.binaryOperatorPriorityParserGenerator("&&", "||");
-        System.out.println(parser.parse(lexer.analyze("!(((((((cond1 || cond2))))) && cond3)")));
+        System.out.println(parser.parse(lexer.analyze("!(cond1 || cond2)")));
     }
 }

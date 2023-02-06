@@ -2,9 +2,7 @@ package thedivazo.conditionhandler.parser.AST;
 
 import lombok.Getter;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class UnaryOperationNode extends ExpressionNode {
 
@@ -25,8 +23,8 @@ public class UnaryOperationNode extends ExpressionNode {
     }
 
     @Override
-    public Set<ExpressionNode> getNextNodes() {
-        return new HashSet<>(){{add(argument1);}};
+    public Deque<ExpressionNode> getNextNodes() {
+        return new ArrayDeque<>(){{add(argument1);}};
     }
 
     @Override

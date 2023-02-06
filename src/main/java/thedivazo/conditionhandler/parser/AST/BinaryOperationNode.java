@@ -2,10 +2,7 @@ package thedivazo.conditionhandler.parser.AST;
 
 import lombok.Getter;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class BinaryOperationNode extends ExpressionNode {
     @Getter
@@ -29,8 +26,8 @@ public class BinaryOperationNode extends ExpressionNode {
     }
 
     @Override
-    public Set<ExpressionNode> getNextNodes() {
-        return new LinkedHashSet<>(){{add(argument1);add(argument2);}};
+    public Deque<ExpressionNode> getNextNodes() {
+        return new ArrayDeque<>(){{add(argument1);add(argument2);}};
     }
 
     @Override
