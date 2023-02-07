@@ -1,133 +1,181 @@
 package thedivazo.conditionhandler.parser;
 
-import thedivazo.conditionhandler.exception.SyntaxException;
 import thedivazo.conditionhandler.lexer.Token;
 import thedivazo.conditionhandler.lexer.TokenType;
-import thedivazo.conditionhandler.parser.AST.BinaryOperationNode;
+import thedivazo.conditionhandler.parser.AST.BinaryOperatorNode;
 import thedivazo.conditionhandler.parser.AST.ConditionNode;
-import thedivazo.conditionhandler.parser.AST.ExpressionNode;
-import thedivazo.conditionhandler.parser.AST.UnaryOperationNode;
+import thedivazo.conditionhandler.parser.AST.OperatorNode;
+import thedivazo.conditionhandler.parser.AST.UnaryOperatorNode;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public class Parser {
-
-    public Parser() {
-
-    }
-
-    protected List<FunctionParser<TokenBuffer,? extends ExpressionNode>> binaryOperatorPriorityParsers = new ArrayList<>();
-
-    /**
-     * Данный метод используется для парсинга всего буфера.
-     * @param tokenBuffer Буффер токенов, который нужно пропарсить
-     * @return Возвращает конечный узел, в котором содержится все выражение
-     * @throws SyntaxException Генерируется исключение, если в буффере присутствуют синтаксические ошибки.
+    /*
+    A || B || C || D
+    ((A || B) || C) || D
      */
-    protected ExpressionNode mainParser(TokenBuffer tokenBuffer) throws SyntaxException {
-        Token token = tokenBuffer.next();
-        if(token.getLexemeType().equals(TokenType.EOF)) return new ConditionNode("");
-        else {
-            tokenBuffer.prev();
-            return binaryOperatorPriorityParsers.get(binaryOperatorPriorityParsers.size()-1).applyAndException(tokenBuffer);
-        }
-    };
-
-    public static String generateCodeFromToken(List<Token> tokenList) {
-        return String.join("", tokenList.stream().map(Token::getSign).toList());
-    }
-
-
-    /**
-     * Данный метод парсит только переменные и унарные операторы.
-     * @param tokenBuffer Буффер с токенами
-     * @return Возвращает переменную, либо объект унарного оператора
-     * @throws SyntaxException Генерирует исключение, если в буффере есть синтаксические ошибки
-     */
-    protected ExpressionNode parseVariableAndUnary(TokenBuffer tokenBuffer) throws SyntaxException {
-        while (true) {
-            Token token = tokenBuffer.next();
-            if(Objects.isNull(token)) {
-                Token tokenPrev = tokenBuffer.prev();
-                throw new SyntaxException("Variable expected.", tokenPrev.getPosition()+tokenPrev.getSign().length(), generateCodeFromToken(tokenBuffer.getTokenList()));
-            }
-            switch (token.getLexemeType()) {
-                case CONDITION ->{return new ConditionNode(token.getSign());}
-                case TRUE ->{return new ConditionNode("true");}
-                case FALSE ->{return new ConditionNode("false");}
-                case COMPOUND_START -> {
-                    ExpressionNode conditionNode = mainParser(tokenBuffer);
-                    token = tokenBuffer.next();
-                    if (Objects.isNull(token)) {
-                        Token prevToken = tokenBuffer.prev();
-                        throw new SyntaxException("Expected end compound token", prevToken.getPosition()+prevToken.getSign().length(), generateCodeFromToken(tokenBuffer.getTokenList()));
-                    }
-                    else if (!token.getLexemeType().equals(TokenType.COMPOUND_END))
-                        throw new SyntaxException(String.format("Unexpected token: %s",token.getSign()), token.getPosition(), generateCodeFromToken(tokenBuffer.getTokenList()));
-                    return conditionNode;
-                }
-                case UNARY_OPERATION -> {
-                    UnaryOperationNode unaryOperationNode = new UnaryOperationNode(token.getSign());
-                    unaryOperationNode.addNextNode(parseVariableAndUnary(tokenBuffer));
-                    return unaryOperationNode;
-                }
-                case SPACE -> {}
-                default -> throw new SyntaxException(String.format("Unexpected token: %s",token.getSign()), token.getPosition(), generateCodeFromToken(tokenBuffer.getTokenList()));
-            }
-        }
-    }
-
-
-    /**
-     * Пока что только можно устанавливать приоритет бинарных операторов.
-     * Я еще не придумал, как реализовать систему приоритета для унарных.
-     * Поэтому все унарные операторы на данный момент имеют приоритет, равный переменным.
-     * Обратите внимание, что если не добавить в аргумент токен бинарного оператора, regEx которого есть в лексере, то парсер этот оператор не определит.
-     * @param operators Массив текстовых токенов бинарных операторов, сортированных относительно их приоритета (операторы в начале массива приоритетнее операторов в конце)
-     */
-    public void binaryOperatorPriorityParserGenerator(String... operators) {
-        for (int i = 0; i < operators.length; i++) {
-            String operator = operators[i];
-            int finalI = i;
-            FunctionParser<TokenBuffer, ? extends ExpressionNode> functionParser = tokenBuffer -> {
-                ExpressionNode value = finalI == 0 ? parseVariableAndUnary(tokenBuffer): binaryOperatorPriorityParsers.get(finalI -1).applyAndException(tokenBuffer);
-                while (true) {
-                    Token token = tokenBuffer.next();
-                    if(Objects.isNull(token)) return value;
-                    if (token.getLexemeType() == TokenType.SPACE) continue;
-                    else if (token.getLexemeType() == TokenType.BINARY_OPERATION && token.getSign().equals(operator)) {
-                        BinaryOperationNode binaryOperationNode = new BinaryOperationNode(operator);
-                        binaryOperationNode.addNextNode(value);
-                        binaryOperationNode.addNextNode(finalI == 0 ? parseVariableAndUnary(tokenBuffer): binaryOperatorPriorityParsers.get(finalI -1).applyAndException(tokenBuffer));
-
-                        value = binaryOperationNode;
-                    }// else if (token.getLexemeType() == TokenType.BINARY_OPERATION) throw new UnknownOperatorException(String.format("Unknown binary operation: %s",token.getSign()), token.getPosition(), generateCodeFromToken(tokenBuffer.getTokenList()));
-                    else {
-                        tokenBuffer.prev();
-                        return value;
-                    }
-                }
-            };
-            binaryOperatorPriorityParsers.add(functionParser);
-        }
-    }
-
-    /**
-     * @param tokenList Массив токенов, из которых нужно сгенерировать AST.
-     * @return Возвращает главный узел, который является вершиной AST
-     * @throws SyntaxException Если в коде будут синтаксические ошибки, сгенерируется исключение
-     */
-    public ExpressionNode parse(List<Token> tokenList) throws SyntaxException {
-        return mainParser(new TokenBuffer(tokenList));
-    }
 
     /*
-    RULES:
-    !cond1
-    !(cond1 || cond2)
+    RULES PARSING
+
+    EXPR -> BINARY* EOF;
+    BINARY -> PROM ('B_OP' PROM)*
+    UNARY -> 'U_OP' BINARY
+    PROM -> UNARY | VARIABLE
+    VARIABLE -> CONDITION | 'compoundStart' EXPR 'compoundEnd';
+    CONDITION -> [a-zA-Z_0-9]+
      */
 
 
+    /**
+     * Здесь нужно указать приоритет каждого оператора.
+     * Операторы без указанного приоритета, по умолчанию имеют самый низкий приоритет.
+     */
+    //protected Map<String, Integer> priorityOperators = new HashMap<>();
 
 
+    /**
+     * Если оператор является нестандартным, то можно написать для него свою реализацию
+     */
+    protected Map<String, Class<? extends OperatorNode >> specialOperators = new HashMap<>();
+
+    /**
+     * @param tokenList буфер с токенами
+     * @return Возвращает коренной узел, который является вершиной AST дерева.
+     */
+    public Node parsing(List<Token> tokenList) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        TokenBuffer tokenBuffer = new TokenBuffer(tokenList);
+        return exprParsing(tokenBuffer);
+    }
+
+    /**
+     * @param tokenBuffer буфер с токенами
+     * @return Возвращает главный узел из данного набора токенов.
+     */
+    public Node exprParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        Token token = tokenBuffer.next();
+        if (token.getLexemeType() == TokenType.EOF) {
+            return new ConditionNode("");
+        } else {
+            tokenBuffer.prev();
+            return binaryParsing(tokenBuffer);
+        }
+    }
+
+    /**
+     * @param tokenBuffer буфер с токенами
+     * @return Возвращает узел, который является либо бинарным оператором, либо значением из {@link Parser#promParsing(TokenBuffer)}
+     */
+    public Node binaryParsing(TokenBuffer tokenBuffer) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        Node variable = promParsing(tokenBuffer);
+        while (tokenBuffer.hasNext()) {
+            Token token = tokenBuffer.next();
+            switch (token.getLexemeType()) {
+                case SPACE -> {}
+                case BINARY_OPERATOR -> {
+                    BinaryOperatorNode binaryOperatorNode;
+                    if(specialOperators.containsKey(token.getSign())) {
+                        binaryOperatorNode = (BinaryOperatorNode) specialOperators.get(token.getSign()).getConstructor(String.class).newInstance(token.getSign());
+                    }
+                    else binaryOperatorNode = new BinaryOperatorNode(token.getSign());
+                    Set<Node> childrenNodes = new LinkedHashSet<>();
+                    childrenNodes.add(variable);
+                    childrenNodes.add(promParsing(tokenBuffer));
+                    binaryOperatorNode.setNodes(childrenNodes);
+                    variable = binaryOperatorNode;
+                }
+                case COMPOUND_END, EOF, UNARY_OPERATOR, CONDITION -> {
+                    tokenBuffer.prev();
+                    return variable;
+                }
+                default -> {
+                    System.out.println(token.getLexemeType());
+                    throw new RuntimeException("dd2"); //TODO: Сделать нормальную обработку
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param tokenBuffer буфер с токенами
+     * @return Возвращает узел, который является унарным оператором.
+     */
+    public Node unaryParsing(TokenBuffer tokenBuffer) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        while (tokenBuffer.hasNext()) {
+            Token token = tokenBuffer.next();
+            switch (token.getLexemeType()) {
+                case SPACE -> {
+                }
+                case UNARY_OPERATOR -> {
+                    UnaryOperatorNode unaryOperatorNode;
+                    if(specialOperators.containsKey(token.getSign())) {
+                        unaryOperatorNode = (UnaryOperatorNode) specialOperators.get(token.getSign()).getConstructor(String.class).newInstance(token.getSign());
+                    }
+                    else unaryOperatorNode = new UnaryOperatorNode(token.getSign());
+                    unaryOperatorNode.setNode(binaryParsing(tokenBuffer));
+                    return unaryOperatorNode;
+                }
+                default -> {
+                    System.out.println(token.getLexemeType());
+                    throw new RuntimeException("dd2"); //TODO: Сделать нормальную обработку
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param tokenBuffer Буфер с токенами
+     * @return Возвращает значение {@link Parser#variableParsing(TokenBuffer)} или {@link Parser#unaryParsing(TokenBuffer)}
+     */
+    public Node promParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        while (tokenBuffer.hasNext()) {
+            Token token = tokenBuffer.next();
+            switch (token.getLexemeType()) {
+                case SPACE -> {}
+                case UNARY_OPERATOR -> {
+                    tokenBuffer.prev();
+                    return unaryParsing(tokenBuffer);
+                }
+                default -> {
+                    tokenBuffer.prev();
+                    return variableParsing(tokenBuffer);
+                }
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * Парсит только переменные и выражения, заключенные в compoundOperators
+     * @param tokenBuffer буфер с токенами
+     * @return Возвращает узел, который является либо переменной, либо целым выражением.
+     */
+    public Node variableParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        while (tokenBuffer.hasNext()) {
+            Token variable = tokenBuffer.next();
+            switch (variable.getLexemeType()) {
+                case SPACE -> {
+                }
+                case COMPOUND_START -> {
+                    Node node = exprParsing(tokenBuffer);
+                    Token compoundEnd = tokenBuffer.next();
+                    if (compoundEnd.getLexemeType() != TokenType.COMPOUND_END)
+                        throw new RuntimeException("dd1"); //TODO: сделать нормальный вызов ошибки
+                    return node;
+                }
+                case CONDITION -> {
+                    return new ConditionNode(variable.getSign());
+                }
+                default -> {
+                    System.out.println(variable.getLexemeType());
+                    throw new RuntimeException("dd2"); //TODO: Сделать нормальную обработку
+                }
+            }
+        }
+        return null;
+    }
 }

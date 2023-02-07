@@ -1,15 +1,11 @@
 package thedivazo.conditionhandler.lexer;
 
-import java.util.regex.Pattern;
-
 public enum TokenType {
     EOF,
     CONDITION,
-    BINARY_OPERATION,
-    UNARY_OPERATION,
+    BINARY_OPERATOR,
+    UNARY_OPERATOR,
     COMPOUND_START,
     COMPOUND_END,
-    TRUE,
-    FALSE,
     SPACE;
 }

@@ -1,34 +1,32 @@
 package thedivazo.conditionhandler.parser.AST;
 
+import thedivazo.conditionhandler.parser.Node;
+
 import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.Set;
 
-public class ConditionNode extends ExpressionNode {
+public class ConditionNode extends Node {
 
-    protected Set<ExpressionNode> setNodes = new LinkedHashSet<>();
+    public ConditionNode(String nodeName) {
+        super(nodeName);
+    }
+
 
     /**
-     * @param name Имя переменной
+     * @param nodes множество узлов.
+     * @return Всегда возвращает {@link UnsupportedOperationException}, так как узел условий хранит только свое имя, которые и является набором условий.
      */
-    public ConditionNode(String name) {
-        super(name);
+    @Override
+    public boolean setNodes(Set<Node> nodes) {
+        throw new UnsupportedOperationException("You cannot add nodes to a condition.");
     }
 
+    /**
+     * @return Всегда возвращает {@link UnsupportedOperationException}, так как узел условий хранит только свое имя, которые и является набором условий.
+     */
     @Override
-    public void addNextNode(ExpressionNode node) {
-        throw new UnsupportedOperationException("Condition don't have next node");
-    }
-
-    @Override
-    public Deque<ExpressionNode> getNextNodes() {
-        throw new UnsupportedOperationException("Condition don't have next node");
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder(name+"\n");
-        return result.toString();
+    public Set<Node> getChildrenNodes() {
+        throw new UnsupportedOperationException("You cannot get nodes to a condition.");
     }
 }

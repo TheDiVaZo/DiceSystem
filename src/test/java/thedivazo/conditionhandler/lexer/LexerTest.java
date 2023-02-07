@@ -7,17 +7,15 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class LexerTest {
 
     @Test
     void analyze() throws Exception {
         Lexer lexer = new Lexer();
-        lexer.putOperator(Pattern.quote("&&"), TokenType.BINARY_OPERATION);
-        lexer.putOperator(Pattern.quote("||"), TokenType.BINARY_OPERATION);
+        lexer.putOperator(Pattern.quote("&&"), TokenType.BINARY_OPERATOR);
+        lexer.putOperator(Pattern.quote("||"), TokenType.BINARY_OPERATOR);
         //lexer.putOperator(Pattern.quote("|"), TokenType.BINARY_OPERATION);
-        lexer.putOperator(Pattern.quote("!"), TokenType.UNARY_OPERATION);
+        lexer.putOperator(Pattern.quote("!"), TokenType.UNARY_OPERATOR);
         lexer.putOperator("[0-9a-zA-Z_\\-]+", TokenType.CONDITION);
         lexer.putOperator("[\t,\s,\n]+", TokenType.SPACE);
         System.out.println(Arrays.toString(new List[]{lexer.analyze("cond1 ||   cond2 && cond3 ")}));;

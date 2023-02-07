@@ -21,7 +21,7 @@ public class Lexer {
     /**
      * Хранит RegEx'ы и типы токенов, которые будут строиться по этим RegEx'ам.
      */
-    protected Map<String, TokenType> operatorsSet = new LinkedMap<>();
+    protected Map<String, TokenType> tokenTypeSet = new LinkedMap<>();
 
     /**
      * Важное уточнение: все regEx'ы должны удовлетворять условию Фано.
@@ -29,7 +29,7 @@ public class Lexer {
      * @param tokenType Тип токена
      */
     public void putOperator(String regEx, TokenType tokenType) {
-        operatorsSet.put(regEx, tokenType);
+        tokenTypeSet.put(regEx, tokenType);
     }
 
     /**
@@ -38,7 +38,7 @@ public class Lexer {
      * @return тип удаленного токена
      */
     public TokenType removeOperator(String sign) {
-       return operatorsSet.remove(sign);
+       return tokenTypeSet.remove(sign);
     }
 
 
@@ -57,13 +57,13 @@ public class Lexer {
             String currentRegEx = null;
             String token = null;
             TokenType tokenType = null;
-            for (String regEx : operatorsSet.keySet()) {
+            for (String regEx : tokenTypeSet.keySet()) {
                 Matcher matcher = Pattern.compile("^"+regEx).matcher(sliceCode);
                 if(matcher.find()) {
                     if(!Objects.isNull(token)) throw new FanoConditionException(currentRegEx, regEx);
                     token = matcher.group();
                     currentRegEx = regEx;
-                    tokenType = operatorsSet.getOrDefault(regEx, null);
+                    tokenType = tokenTypeSet.getOrDefault(regEx, null);
                 }
             }
             if(Objects.isNull(token) || Objects.isNull(tokenType)) {
