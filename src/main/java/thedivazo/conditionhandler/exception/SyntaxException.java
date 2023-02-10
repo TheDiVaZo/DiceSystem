@@ -1,6 +1,6 @@
 package thedivazo.conditionhandler.exception;
 
-public class SyntaxException extends ConditionException {
+public class SyntaxException extends CompileException {
 
 
     /**

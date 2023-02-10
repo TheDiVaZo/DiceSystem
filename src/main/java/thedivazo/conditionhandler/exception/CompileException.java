@@ -3,10 +3,10 @@ package thedivazo.conditionhandler.exception;
 /**
  * Родоначальник всех ошибок в моем парсере.
  */
-public class ConditionException extends Exception {
+public class CompileException extends Exception {
 
 
-    public ConditionException(String message) {
+    public CompileException(String message) {
         super(message);
     }
 
@@ -26,7 +26,7 @@ public class ConditionException extends Exception {
      * @param position Позиция символа в коде, на котором произошла ошибка
      * @param invalidCode Код, в котором произошла ошибка
      */
-    public ConditionException(String message, int position, String invalidCode) {
+    public CompileException(String message, int position, String invalidCode) {
         super(
                 message + "\n"
                 + invalidCode + "\n"
