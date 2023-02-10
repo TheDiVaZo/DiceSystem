@@ -17,22 +17,19 @@ import thedivazo.conditionhandler.parser.AST.UnaryOperatorNode;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
+/**
+ * Данный класс предназначен для парсинга списка токенов ({@link Lexer}) в дерево узлов (AST).
+ *
+ * RULES PARSING
+ * EXPR -> OPERATOR_2* EOF;
+ * OPERATOR_2 -> ( 'U_OP'? OPERATOR_1 )|( OPERATOR_1 ('B_OP' OPERATOR_1 )* );
+ * OPERATOR_1 -> ( 'U_OP'? VARIABLE )|( VARIABLE ('B_OP' VARIABLE)* );
+ * VARIABLE -> CONDITION | 'compoundStart' EXPR 'compoundEnd';
+ * @author TheDiVaZo
+ * @version 1.0
+ */
 @RequiredArgsConstructor
 public class Parser {
-    /*
-    A || B || C || D
-    ((A || B) || C) || D
-     */
-
-    /*
-    RULES PARSING
-
-    EXPR -> OPERATOR_2* EOF;
-    OPERATOR_2 -> ( 'U_OP'? OPERATOR_1 )|( OPERATOR_1 ('B_OP' OPERATOR_1 )* )
-    OPERATOR_1 -> ( 'U_OP'? VARIABLE )|( VARIABLE ('B_OP' VARIABLE)* )
-    VARIABLE -> CONDITION | 'compoundStart' EXPR 'compoundEnd';
-    CONDITION -> [a-zA-Z_0-9]+
-     */
 
 
     /**
