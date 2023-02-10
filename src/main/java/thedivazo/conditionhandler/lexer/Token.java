@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.Objects;
 
 
-public record Token(@Getter TokenType lexemeType, @Getter String sign, @Getter int position) {
+public record Token(@Getter TokenType lexemeType, @Getter String sign, int position) {
 
     @Override
     public boolean equals(Object o) {
@@ -29,5 +29,9 @@ public record Token(@Getter TokenType lexemeType, @Getter String sign, @Getter i
         sb.append(", ").append(position);
         sb.append('}');
         return sb.toString();
+    }
+
+    public int getPosition() {
+        return position-1;
     }
 }

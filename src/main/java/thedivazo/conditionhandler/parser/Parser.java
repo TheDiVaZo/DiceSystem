@@ -3,6 +3,9 @@ package thedivazo.conditionhandler.parser;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.list.SetUniqueList;
 import org.apache.commons.collections4.map.LinkedMap;
+import thedivazo.conditionhandler.exception.CompileException;
+import thedivazo.conditionhandler.exception.ConditionException;
+import thedivazo.conditionhandler.exception.SyntaxException;
 import thedivazo.conditionhandler.lexer.Lexer;
 import thedivazo.conditionhandler.lexer.Token;
 import thedivazo.conditionhandler.lexer.TokenType;
@@ -60,12 +63,16 @@ public class Parser {
      * @param tokenList буфер с токенами
      * @return Возвращает коренной узел, который является вершиной AST дерева.
      */
-    public Node parsing(List<Token> tokenList) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public Node parsing(List<Token> tokenList) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, CompileException {
         TokenBuffer tokenBuffer = new TokenBuffer(tokenList);
         Node mainNode = exprParsing(tokenBuffer);
-        Token endToken = tokenBuffer.next();
+        Token endToken;
+        do {
+            endToken = tokenBuffer.next();
+        }
+        while (endToken.getLexemeType() == TokenType.SPACE);
         if(endToken.getLexemeType() != TokenType.EOF){
-            throw new RuntimeException("Error End "+endToken.getLexemeType());
+            throw new SyntaxException(String.format("Excess \"%s\"",endToken.getSign()), endToken.getPosition(), tokensToCode(tokenList));
         }
         else return mainNode;
     }
@@ -74,14 +81,14 @@ public class Parser {
      * @param tokenBuffer буфер с токенами
      * @return Возвращает главный узел из данного набора токенов.
      */
-    protected Node exprParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    protected Node exprParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, CompileException {
         Token token = tokenBuffer.next();
         if (token.getLexemeType() == TokenType.EOF) {
-            return new ConditionNode("");
+            throw new CompileException("There can be no empty expression");
         } else {
             tokenBuffer.prev();
-            Node node = priorityOperator(priorityOperators.size()-1,tokenBuffer);
-            return node;
+            return priorityOperator(priorityOperators.size()-1,tokenBuffer);
+
         }
     }
 
@@ -91,7 +98,7 @@ public class Parser {
      * @param tokenBuffer буфер с токенами.
      * @return Возвращает значение, возвращаемое оператором. Если приоритет ниже нуля, то возвращает значение данного метода: {@link Parser#variableParsing(TokenBuffer)}
      */
-    protected Node priorityOperator(int priority, TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    protected Node priorityOperator(int priority, TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, CompileException {
         if(priority < 0) return variableParsing(tokenBuffer);
         else {
             String operatorSign = priorityOperators.get(priority);
@@ -114,7 +121,7 @@ public class Parser {
      * @param tokenBuffer буфер с токенами
      * @return Возвращает узел, который является бинарным оператором, либо оператором более низкого приоритета.
      */
-    protected Node binaryParsing(TokenBuffer tokenBuffer, String sign) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    protected Node binaryParsing(TokenBuffer tokenBuffer, String sign) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, CompileException {
 
         Node variable = priorityOperator(priorityOperators.indexOf(sign)-1,tokenBuffer);
         while (tokenBuffer.hasNext()) {
@@ -142,8 +149,7 @@ public class Parser {
                     return variable;
                 }
                 default -> {
-                    System.out.println(token.getLexemeType());
-                    throw new RuntimeException("dd2"); //TODO: Сделать нормальную обработку
+                    throw new SyntaxException(String.format("Excess \"%s\"",token.getSign()), token.getPosition(), tokensToCode(tokenBuffer.tokenList));
                 }
             }
         }
@@ -154,7 +160,7 @@ public class Parser {
      * @param tokenBuffer буфер с токенами
      * @return Возвращает узел, который является унарным оператором.
      */
-    protected Node unaryParsing(TokenBuffer tokenBuffer, String sign) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+    protected Node unaryParsing(TokenBuffer tokenBuffer, String sign) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, CompileException {
         while (tokenBuffer.hasNext()) {
             Token token = tokenBuffer.next();
             switch (token.getLexemeType()) {
@@ -188,7 +194,7 @@ public class Parser {
      * @param tokenBuffer буфер с токенами
      * @return Возвращает узел, который является либо переменной, либо целым выражением.
      */
-    protected Node variableParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    protected Node variableParsing(TokenBuffer tokenBuffer) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, CompileException {
         while (tokenBuffer.hasNext()) {
             Token variable = tokenBuffer.next();
             switch (variable.getLexemeType()) {
@@ -198,7 +204,7 @@ public class Parser {
                     Node node = exprParsing(tokenBuffer);
                     Token compoundEnd = tokenBuffer.next();
                     if (compoundEnd.getLexemeType() != TokenType.COMPOUND_END)
-                        throw new RuntimeException("dd1"); //TODO: сделать нормальный вызов ошибки
+                        throw new SyntaxException("closer compound is missing", compoundEnd.getPosition(), tokensToCode(tokenBuffer.tokenList));
                     return node;
                 }
                 case CONDITION -> {
@@ -209,11 +215,14 @@ public class Parser {
                     return priorityOperator(priorityOperators.indexOf(variable.getSign()), tokenBuffer);
                 }
                 default -> {
-                    System.out.println(variable.getLexemeType());
-                    throw new RuntimeException("dd2"); //TODO: Сделать нормальную обработку
+                    throw new ConditionException("Condition not specified", variable.getPosition(), tokensToCode(tokenBuffer.tokenList));
                 }
             }
         }
         return null;
+    }
+
+    protected String tokensToCode(List<Token> tokenList) {
+        return String.join("",tokenList.stream().map(Token::getSign).toList());
     }
 }

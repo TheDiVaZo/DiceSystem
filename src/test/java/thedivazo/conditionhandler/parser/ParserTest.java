@@ -1,6 +1,8 @@
 package thedivazo.conditionhandler.parser;
 
 import org.junit.jupiter.api.Test;
+import thedivazo.conditionhandler.exception.CompileException;
+import thedivazo.conditionhandler.exception.ConditionException;
 import thedivazo.conditionhandler.exception.FanoConditionException;
 import thedivazo.conditionhandler.exception.SyntaxException;
 import thedivazo.conditionhandler.lexer.Lexer;
@@ -28,7 +30,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest1() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest1() throws CompileException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -37,7 +39,7 @@ class ParserTest {
         assertEquals("||(&&(!(!(cond1)),cond5),cond2)", node.toString());
     }
     @Test
-    void parserTest2() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest2() throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -47,7 +49,7 @@ class ParserTest {
         //System.out.println(node);
     }
     @Test
-    void parserTest3() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest3() throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -58,7 +60,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest4() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest4() throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -69,7 +71,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest5() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest5() throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -80,7 +82,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest6() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest6()throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -91,7 +93,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest7() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest7()throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -102,7 +104,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest8() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest8()throws Exception {
         Parser parser = new Parser();
         lexer.putOperator("\\*", TokenType.UNARY_OPERATOR);
         parser.addPriorityOperator("!", OperatorType.UNARY);
@@ -115,7 +117,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest9() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest9()throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -127,7 +129,7 @@ class ParserTest {
     }
 
     @Test
-    void parserTest10() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    void parserTest10()throws Exception {
         Parser parser = new Parser();
         parser.addPriorityOperator("!", OperatorType.UNARY);
         parser.addPriorityOperator("&&", OperatorType.BINARY);
@@ -136,17 +138,5 @@ class ParserTest {
         Node node = parser.parsing(lexer.analyze("!*!cond1 || cond2"));
         assertEquals("!(*(||(!(cond1),cond2)))", node.toString());
         //System.out.println(node);
-    }
-
-    @Test
-    void parserTest11() throws SyntaxException, FanoConditionException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        Parser parser = new Parser();
-        parser.addPriorityOperator("!", OperatorType.UNARY);
-        parser.addPriorityOperator("&&", OperatorType.BINARY);
-        parser.addPriorityOperator("||", OperatorType.BINARY);
-        parser.addPriorityOperator("*", OperatorType.UNARY);
-        Node node = parser.parsing(lexer.analyze("!cond1||!!!"));
-        //assertEquals("!(*(||(!(cond1),cond2)))", node.toString());
-        System.out.println(node);
     }
 }
