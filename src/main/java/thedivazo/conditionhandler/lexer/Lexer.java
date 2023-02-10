@@ -10,13 +10,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Лексер, принимающий исходный код, и выдающий токены
+ * Лексер, который подвергает код лексическому анализу, и по завершению выдает список токенов.
  * @author TheDiVaZo
+ * @version 1.0
  *
  */
 @NoArgsConstructor
-
-
 public class Lexer {
     /**
      * Хранит RegEx'ы и типы токенов, которые будут строиться по этим RegEx'ам.
