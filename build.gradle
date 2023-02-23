@@ -12,6 +12,7 @@ compileTestJava.options.encoding = 'UTF-8'
 
 repositories {
     mavenCentral()
+    maven { url "https://mvnrepository.com/artifact/org.mvel/mvel2" }
     maven { url 'https://repo.extendedclip.com/content/repositories/placeholderapi/' }
     maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
     maven { url 'https://oss.sonatype.org/content/repositories/central' }
@@ -54,6 +55,8 @@ dependencies {
     implementation 'org.graalvm.js:js-scriptengine:22.0.0'
 
     implementation 'org.graalvm.js:js:22.0.0'
+
+    implementation group: 'org.mvel', name: 'mvel2', version: '2.1.6.Final'
 }
 
 test {
