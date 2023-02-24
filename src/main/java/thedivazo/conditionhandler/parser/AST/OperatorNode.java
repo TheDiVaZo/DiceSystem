@@ -3,10 +3,7 @@ package thedivazo.conditionhandler.parser.AST;
 import thedivazo.conditionhandler.parser.Node;
 
 import java.awt.*;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 public class OperatorNode extends Node {
 
@@ -16,10 +13,9 @@ public class OperatorNode extends Node {
     }
 
     @Override
-    public boolean setNodes(Set<Node> nodes) {
-        if(nodes.stream().anyMatch(this::equals)) throw new IllegalArgumentException(String.format("A operator \"%s\" cannot be its own argument.", nodeName));
+    public boolean setNodes(Node... nodes) {
         childrenNodes.clear();
-        childrenNodes.addAll(nodes);
+        childrenNodes.addAll(Arrays.stream(nodes).toList());
         return true;
     }
 

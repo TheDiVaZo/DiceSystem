@@ -53,7 +53,7 @@ public class Parser {
     /**
      * Метод, позволяющий добавить токен(ы) оператора(ов) в список приоритета.
      * Чем позже был добавлен оператор(ы) в список, тем более он(и) приоритетен(ны).
-     * @param operatorData Массив с неповторяющимися операторами, которые вы хотите добавить в список приоритета
+     * @param operatorData Массив с неповторяющимися множествами операторов, которые вы хотите добавить в список приоритета
      * @return возвращает состояние добавления
      */
     public boolean addOperator(OperatorData... operatorData) {
@@ -87,7 +87,7 @@ public class Parser {
                 Node firstOperatorArgument = prevNode;
                 Node secondOperatorArgument = operator(tokenBuffer, indexPriority-1);
                 BinaryOperatorNode binaryOperatorNode = new BinaryOperatorNode(token.getSign());
-                binaryOperatorNode.setNodes(new HashSet<>(){{add(firstOperatorArgument);add(secondOperatorArgument);}});
+                binaryOperatorNode.setNodes(firstOperatorArgument,secondOperatorArgument);
                 prevNode = binaryOperatorNode;
             }
             else {
@@ -104,7 +104,7 @@ public class Parser {
         if(operatorsData.stream().anyMatch(operatorData -> operatorData.getSignOperator().equals(token.getSign())) && token.getLexemeType().equals(TokenType.OPERATOR)) {
             UnaryOperatorNode unaryOperatorNode = new UnaryOperatorNode(token.getSign());
             argument = operator(tokenBuffer, indexPriority-1);
-            unaryOperatorNode.setNode(argument);
+            unaryOperatorNode.setNodes(argument);
             return unaryOperatorNode;
         }
         tokenBuffer.prev();

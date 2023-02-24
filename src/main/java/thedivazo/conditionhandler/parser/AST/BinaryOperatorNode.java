@@ -11,8 +11,8 @@ public class BinaryOperatorNode extends OperatorNode {
     }
 
     @Override
-    public boolean setNodes(Set<Node> nodes) {
-        if(nodes.size()!=2) throw new IllegalArgumentException("A binary operator must have 2 arguments.");
+    public boolean setNodes(Node... nodes) {
+        if(nodes.length!=2) throw new IllegalArgumentException("A binary operator must have 2 arguments.");
         return super.setNodes(nodes);
     }
 }

@@ -13,12 +13,8 @@ public class UnaryOperatorNode extends OperatorNode {
     }
 
     @Override
-    public boolean setNodes(Set<Node> nodes) {
-        if(nodes.size()!=1) throw new IllegalArgumentException(String.format("A unary operator \"%s\" must have 1 arguments.", nodeName));
+    public boolean setNodes(Node... nodes) {
+        if(nodes.length!=1) throw new IllegalArgumentException(String.format("A unary operator \"%s\" must have 1 arguments.", nodeName));
         return super.setNodes(nodes);
-    }
-
-    public boolean setNode(Node node) {
-        return super.setNodes(new HashSet<>(){{add(node);}});
     }
 }

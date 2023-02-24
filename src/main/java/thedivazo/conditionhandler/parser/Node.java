@@ -15,7 +15,7 @@ public abstract class Node {
      * @param nodes множество узлов.
      * @return Возвращает статус установки узла. Если все узлы установлены, возвращает true
      */
-    public abstract boolean setNodes(Set<Node> nodes);
+    public abstract boolean setNodes(Node... nodes);
 
 
     /**

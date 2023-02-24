@@ -18,7 +18,7 @@ public class ConditionNode extends Node {
      * @return Всегда возвращает {@link UnsupportedOperationException}, так как узел условий хранит только свое имя, которые и является набором условий.
      */
     @Override
-    public boolean setNodes(Set<Node> nodes) {
+    public boolean setNodes(Node... nodes) {
         throw new UnsupportedOperationException("You cannot add nodes to a condition.");
     }
 
