@@ -1,7 +1,5 @@
 package thedivazo.conditionhandler.lexer;
 
-
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.Objects;
@@ -23,15 +21,10 @@ public record Token(@Getter TokenType lexemeType, @Getter String sign, int posit
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer();
-        sb.append("{").append(lexemeType);
-        sb.append(", '").append(sign).append('\'');
-        sb.append(", ").append(position);
-        sb.append('}');
-        return sb.toString();
+        return sign;
     }
 
     public int getPosition() {
-        return position-1;
+        return position;
     }
 }
