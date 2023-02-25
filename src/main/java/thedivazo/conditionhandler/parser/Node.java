@@ -21,7 +21,7 @@ public abstract class Node {
     /**
      * @return Возвращает неизменяемый список узлов, в котором гарантированно нет одинаковых элементов.
      */
-    public abstract Set<Node> getChildrenNodes();
+    public abstract List<Node> getChildrenNodes();
 
     @Override
     public String toString() {

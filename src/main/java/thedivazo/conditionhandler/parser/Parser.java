@@ -12,6 +12,7 @@ import thedivazo.conditionhandler.lexer.Token;
 import thedivazo.conditionhandler.lexer.TokenType;
 import thedivazo.conditionhandler.parser.AST.BinaryOperatorNode;
 import thedivazo.conditionhandler.parser.AST.ConditionNode;
+import thedivazo.conditionhandler.parser.AST.FunctionOperatorNode;
 import thedivazo.conditionhandler.parser.AST.UnaryOperatorNode;
 
 import java.util.*;
@@ -29,6 +30,8 @@ public class Parser {
     /*
          BINARY_OPERATOR: OPERATOR_-1 ("operand" OPERATOR_-1)*
          UNARY_OPERATOR: "operand"? OPERATOR_-1
+         FUNCTION: "function_name"\((expr)?(,expr)*\)
+
 
          CONDITION: [a-zA-Z0-9\:]+ |  (EXPRESS)
      */
@@ -49,6 +52,8 @@ public class Parser {
 
     private final List<Set<OperatorData>> listOfPriorityOperator = SetUniqueList.setUniqueList(new ArrayList<>());
 
+    private final Map<String, Integer> functionAndNumberArgument = new HashMap<>();
+
 
     /**
      * Метод, позволяющий добавить токен(ы) оператора(ов) в список приоритета.
@@ -58,6 +63,11 @@ public class Parser {
      */
     public boolean addOperator(OperatorData... operatorData) {
         return listOfPriorityOperator.add(Arrays.stream(operatorData).collect(Collectors.toSet()));
+    }
+
+
+    public void addNumberFunctionArgument(String functionSign, Integer numberArgument) {
+        functionAndNumberArgument.put(functionSign, numberArgument);
     }
 
     /**
@@ -77,6 +87,29 @@ public class Parser {
 
     public Set<OperatorData> getOperatorForIndex(int indexPriority) {
         return listOfPriorityOperator.get(indexPriority);
+    }
+
+    public Node function(TokenBuffer tokenBuffer) throws CompileException {
+        Token currentToken = tokenBuffer.next();
+        if(!currentToken.lexemeType().equals(TokenType.FUNCTION)) return factor(tokenBuffer);
+        if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_START)) throw new SyntaxException("Compound start expected", currentToken.getPosition(), tokenBuffer.tokensToCode());
+        List<Node> expressionList = new ArrayList<>();
+        while (tokenBuffer.hasNext()) {
+            Node expression = expr(tokenBuffer);
+            expressionList.add(expression);
+            if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
+                tokenBuffer.next();
+                break;
+            };
+            if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
+                tokenBuffer.next();
+                continue;
+            }
+            else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
+        }
+        FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign(), functionAndNumberArgument.get(currentToken.getSign()));
+        functionOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
+        return functionOperatorNode;
     }
 
     public Node binaryOperator(TokenBuffer tokenBuffer, Set<OperatorData> operatorsData, int indexPriority) throws CompileException {
@@ -126,6 +159,12 @@ public class Parser {
     public Node factor(TokenBuffer tokenBuffer) throws CompileException {
         Token currentToken = tokenBuffer.next();
         switch (currentToken.getLexemeType()) {
+
+            case FUNCTION -> {
+                tokenBuffer.prev();
+                return function(tokenBuffer);
+            }
+
             case CONDITION -> {
                 return new ConditionNode(currentToken.getSign());
             }

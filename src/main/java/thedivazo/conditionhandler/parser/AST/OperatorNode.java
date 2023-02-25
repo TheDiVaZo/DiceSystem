@@ -4,10 +4,11 @@ import thedivazo.conditionhandler.parser.Node;
 
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 public class OperatorNode extends Node {
 
-    private LinkedHashSet<Node> childrenNodes = new LinkedHashSet<>(){{add(null);add(null);}};
+    private List<Node> childrenNodes = new ArrayList<>();
     public OperatorNode(String nodeName) {
         super(nodeName);
     }
@@ -20,8 +21,8 @@ public class OperatorNode extends Node {
     }
 
     @Override
-    public Set<Node> getChildrenNodes() {
-        return Collections.unmodifiableSet(childrenNodes);
+    public List<Node> getChildrenNodes() {
+        return Collections.unmodifiableList(childrenNodes);
     }
 
     @Override

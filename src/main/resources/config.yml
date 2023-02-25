@@ -1,16 +1,16 @@
 version: 1.0
 
 condition:
-  group_1: "hand:diamond_sword || hand:wooden_sword && permission:moh.su"
-  group_2: "group_1 || head:diamond_helmet"
-  group_3: "foot:diamond_boots || sun_phase:6"
+  - group_1: "hand:diamond_sword || hand:wooden_sword && permission:moh.su"
+  - group_2: "group_1 || head:diamond_helmet"
+  - group_3: "foot:diamond_boots || sun_phase:6"
 
 restrictions:
   rest_1:
     condition: "group_1 || group_3"
     count_point:
       operation: add #add or set
-      count: "20" # any JS code or path for js's file
+      count: "20" # math expression
   rest_2:
     condition: "!(group_1 && group_3) || (!group_1 == group_2)"
     count_point:
@@ -20,11 +20,6 @@ restrictions:
     condition: "hand:diamond_sword || sun_phase:6"
     count_point:
       operation: add
-      count: "Math.cos(4)+Math.sin(8)"
-  rest_4:
-    condition: "true" #all true condition
-    count_point:
-      operation: add
-      count: "test.js"
+      count: "cos(4)+sin(8)-pow(sin(PI/3,2)"
 
 

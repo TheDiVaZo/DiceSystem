@@ -4,6 +4,7 @@ import api.logging.Logger;
 import lombok.Getter;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import thedivazo.DiceSystem;
@@ -32,10 +33,6 @@ public class ConfigManager {
     private boolean isVault = false;
 
 
-    @Getter
-    private Permission permissionVault = null;
-
-
     public ConfigManager(DiceSystem plugin) {
         this.plugin = plugin;
         this.fileConfig = plugin.getConfig();
@@ -51,13 +48,6 @@ public class ConfigManager {
 
 
     private void saveSoftDependCondition() {
-        if(isPlugin("Vault")) {
-            this.isVault = true;
-            RegisteredServiceProvider<Permission> rsp1 = getServer().getServicesManager().getRegistration(Permission.class);
-            if(rsp1!= null) {
-                permissionVault = rsp1.getProvider();
-            }
-        }
         if(isPlugin("PlaceholderAPI")) {
             this.isPAPILoaded = true;
         }

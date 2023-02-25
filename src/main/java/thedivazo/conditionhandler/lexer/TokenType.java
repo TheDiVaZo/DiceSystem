@@ -5,7 +5,11 @@ public enum TokenType {
     CONDITION,
 
     OPERATOR,
+
+    FUNCTION,
     COMPOUND_START,
     COMPOUND_END,
-    SPACE;
+    SPACE,
+
+    DELIMITER;
 }
