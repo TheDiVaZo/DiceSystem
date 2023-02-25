@@ -2,5 +2,7 @@ package thedivazo.parserexpression.parser;
 
 public enum OperatorType {
     UNARY,
-    BINARY
+    BINARY,
+    TERNARY_1,
+    TERNARY_2,
 }

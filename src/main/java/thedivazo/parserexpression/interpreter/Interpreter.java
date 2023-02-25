@@ -3,16 +3,11 @@ package thedivazo.parserexpression.interpreter;
 import lombok.Getter;
 import lombok.Setter;
 import thedivazo.parserexpression.exception.InterpreterException;
-import thedivazo.parserexpression.parser.AST.BinaryOperatorNode;
-import thedivazo.parserexpression.parser.AST.ConditionNode;
-import thedivazo.parserexpression.parser.AST.FunctionOperatorNode;
-import thedivazo.parserexpression.parser.AST.UnaryOperatorNode;
+import thedivazo.parserexpression.parser.AST.*;
 import thedivazo.parserexpression.parser.Node;
+import thedivazo.utils.TernaryOperator;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -33,11 +28,17 @@ public class Interpreter<T, R> {
     @Setter
     protected Function<String, R> alternativeConditionParser;
 
+    protected Map<String, TernaryOperator<R>> listTernaryOperators = new HashMap<>();
+
     protected Map<String, BinaryOperator<R>> listBinaryOperators = new HashMap<>();
 
     protected Map<String, UnaryOperator<R>> listUnaryOperators = new HashMap<>();
 
     protected Map<String, Function<List<R>,R>> listFunctionOperators = new HashMap<>();
+
+    public void addTernaryOperator(String sign1, String sign2, TernaryOperator<R> ternaryOperator) {
+        listTernaryOperators.put(sign1+sign2, ternaryOperator);
+    }
 
     public void addUnaryOperator(String sign, UnaryOperator<R> unaryOperator) {
         listUnaryOperators.put(sign, unaryOperator);
@@ -68,11 +69,15 @@ public class Interpreter<T, R> {
             List<Node> childrenNode = mainNode.getChildrenNodes();
             return listFunctionOperators.get(functionOperatorNode.getNodeName()).apply(childrenNode.stream().map(node -> executeNoException(node, input)).toList());
         }
-        if(mainNode instanceof BinaryOperatorNode binaryOperatorNode) {
+        else if(mainNode instanceof TernaryOperatorNode ternaryOperatorNode) {
+            List<Node> childrenNode = mainNode.getChildrenNodes().stream().toList();
+            return listTernaryOperators.get(ternaryOperatorNode.getNodeName()).apply(execute(childrenNode.get(0), input), execute(childrenNode.get(1), input), execute(childrenNode.get(2), input));
+        }
+        else if(mainNode instanceof BinaryOperatorNode binaryOperatorNode) {
             List<Node> childrenNode = mainNode.getChildrenNodes().stream().toList();
             return listBinaryOperators.get(binaryOperatorNode.getNodeName()).apply(execute(childrenNode.get(0), input), execute(childrenNode.get(1), input));
         }
-        if(mainNode instanceof UnaryOperatorNode unaryOperationNode) {
+        else if(mainNode instanceof UnaryOperatorNode unaryOperationNode) {
             List<Node> childrenNode = mainNode.getChildrenNodes().stream().toList();
             return listUnaryOperators.get(unaryOperationNode.getNodeName()).apply(execute(childrenNode.get(0), input));
         }
@@ -81,7 +86,7 @@ public class Interpreter<T, R> {
             else if(Objects.isNull(alternativeConditionParser)) throw new InterpreterException(String.format("Unknown condition: %s", mainNode.getNodeName()));
             else return alternativeConditionParser.apply(conditionNode.getNodeName());
         }
-        else throw new InterpreterException(String.format("Unknown node: %s", mainNode.getNodeName()));
+        else throw new InterpreterException(String.format("Unknown node: %s", mainNode));
     }
 
     protected R executeNoException(Node mainNode , T input) {

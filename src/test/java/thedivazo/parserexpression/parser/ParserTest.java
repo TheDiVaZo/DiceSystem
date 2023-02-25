@@ -21,12 +21,15 @@ class ParserTest {
         lexer.putOperator(" +", TokenType.SPACE);
         lexer.putOperator("\\(", TokenType.COMPOUND_START);
         lexer.putOperator("\\)", TokenType.COMPOUND_END);
-        String code = "!cond1 && cond2 || cond3 ! cond4";
+        lexer.putOperator("\\:", TokenType.OPERATOR);
+        lexer.putOperator("\\?",TokenType.OPERATOR);
+        String code = "(cond3 && !cond4 || cond5) && cond6 ? true:false";
         List<Token> tokenList = lexer.analyze(code);
         Parser parser = new Parser();
         parser.addOperator(new Parser.OperatorData("!", OperatorType.UNARY));
         parser.addOperator(new Parser.OperatorData("&&", OperatorType.BINARY));
         parser.addOperator(new Parser.OperatorData("||", OperatorType.BINARY));
+        parser.addOperator(new Parser.OperatorData("?", OperatorType.TERNARY_1), new Parser.OperatorData(":", OperatorType.TERNARY_2));
         System.out.println(parser.parsing(tokenList));
     }
 

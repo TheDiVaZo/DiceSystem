@@ -1,8 +1,11 @@
 package thedivazo.parserexpression;
 
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.math.*;
 import org.junit.jupiter.api.Test;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.InterpreterException;
+import thedivazo.utils.TernaryOperator;
 
 import java.util.List;
 import java.util.Objects;
@@ -166,9 +169,28 @@ class ParserExpressionTest {
                         return Object::equals;
                     }
                 });
+        parserExpression.addTernaryOperator(
+                new ParserExpression.TernaryOperatorWrapper<Object>() {
+            @Override
+            public String getSignOne() {
+                return "?";
+            }
+
+            @Override
+            public String getSignTwo() {
+                return ":";
+            }
+
+            @Override
+            public TernaryOperator<Object> getTernaryOperator() {
+                return (cond1, cond2, cond3) -> Boolean.parseBoolean(cond1.toString()) ? cond2:cond3;
+            }
+        });
 
         parserExpression.addCondition("pi", aDouble -> Math.PI);
         parserExpression.addCondition("[0-9]+(\\.[0-9]+)?");
+        parserExpression.addCondition("true", cond->true);
+        parserExpression.addCondition("false", cond->false);
         parserExpression.setAlternativeConditionParser(Double::parseDouble);
 
         parserExpression.addDelimiter("\\,");
@@ -179,7 +201,8 @@ class ParserExpressionTest {
         parserExpression.addFunction("sin", doubles -> Math.sin(Double.parseDouble(doubles.get(0).toString())), 1);
         parserExpression.addFunction("pow", doubles -> Math.pow(Double.parseDouble(doubles.get(0).toString()),Double.parseDouble(doubles.get(1).toString())), 2);
 
-        String code = "-pow(cos(pi/2),2)-pow(sin(pi/2),2)-cos(0)+pi-pow(pi,2)+cos(pow(pi/2,2))/sin(pow(pow(pi+3/2,2),3))+1/2*2==-5.510169876647481"; //-5.510169876647481
+
+        String code = "-pow(cos(pi/2),2)-pow(sin(pi/2),2)-cos(0)+pi-pow(pi,2)+cos(pow(pi/2,2))/sin(pow(pow(pi+3/2,2),3))+1/2*2==-5.510169876647481 ? true:false"; //-5.510169876647481
         System.out.println(parserExpression.execute(code));
     }
 

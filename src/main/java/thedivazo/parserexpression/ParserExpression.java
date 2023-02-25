@@ -11,6 +11,7 @@ import thedivazo.parserexpression.lexer.TokenType;
 import thedivazo.parserexpression.parser.Node;
 import thedivazo.parserexpression.parser.OperatorType;
 import thedivazo.parserexpression.parser.Parser;
+import thedivazo.utils.TernaryOperator;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -26,6 +27,12 @@ public class ParserExpression<T, R> {
     private final Parser parser = new Parser();
     private final Interpreter<T, R> interpreter = new Interpreter<>();
 
+    interface TernaryOperatorWrapper<V> {
+        String getSignOne();
+        String getSignTwo();
+        TernaryOperator<V> getTernaryOperator();
+    }
+
     interface BinaryOperatorWrapper<V> {
         String getSign();
         BinaryOperator<V> getBinaryOperator();
@@ -35,16 +42,35 @@ public class ParserExpression<T, R> {
         UnaryOperator<V> getUnaryOperator();
     }
 
-    public void addBinaryOperator(BinaryOperatorWrapper<R>... operatorsData) {
-        parser.addOperator(Arrays.stream(operatorsData).map(binaryOperatorWrapper -> new Parser.OperatorData(binaryOperatorWrapper.getSign(), OperatorType.BINARY)).toList().toArray(new Parser.OperatorData[]{}));
+    public void addTernaryOperator(TernaryOperatorWrapper<R> operatorData) {
+        parser.addOperator(new Parser.OperatorData(operatorData.getSignOne(), OperatorType.TERNARY_1), new Parser.OperatorData(operatorData.getSignTwo(), OperatorType.TERNARY_2));
+        lexer.putOperator(Pattern.quote(operatorData.getSignOne()),TokenType.OPERATOR);
+        lexer.putOperator(Pattern.quote(operatorData.getSignTwo()),TokenType.OPERATOR);
+        interpreter.addTernaryOperator(operatorData.getSignOne(), operatorData.getSignTwo(), operatorData.getTernaryOperator());
+    }
+
+    @SafeVarargs
+    public final void addBinaryOperator(BinaryOperatorWrapper<R>... operatorsData) {
+        parser.addOperator(
+                Arrays
+                        .stream(operatorsData)
+                        .map(binaryOperatorWrapper -> new Parser.OperatorData(binaryOperatorWrapper.getSign(), OperatorType.BINARY))
+                        .toList()
+                        .toArray(new Parser.OperatorData[]{}));
         for (BinaryOperatorWrapper<R> operatorData : operatorsData) {
             lexer.putOperator(Pattern.quote(operatorData.getSign()), TokenType.OPERATOR);
             interpreter.addBinaryOperator(operatorData.getSign(),operatorData.getBinaryOperator());
         }
     }
 
-    public void addUnaryOperator(UnaryOperatorWrapper<R>... operatorsData) {
-        parser.addOperator(Arrays.stream(operatorsData).map(unaryOperatorWrapper -> new Parser.OperatorData(unaryOperatorWrapper.getSign(), OperatorType.UNARY)).toList().toArray(new Parser.OperatorData[]{}));
+    @SafeVarargs
+    public final void addUnaryOperator(UnaryOperatorWrapper<R>... operatorsData) {
+        parser.addOperator(
+                Arrays
+                        .stream(operatorsData)
+                        .map(unaryOperatorWrapper -> new Parser.OperatorData(unaryOperatorWrapper.getSign(), OperatorType.UNARY))
+                        .toList()
+                        .toArray(new Parser.OperatorData[]{}));
         for (UnaryOperatorWrapper<R> operatorData : operatorsData) {
             lexer.putOperator(Pattern.quote(operatorData.getSign()), TokenType.OPERATOR);
             interpreter.addUnaryOperator(operatorData.getSign(),operatorData.getUnaryOperator());

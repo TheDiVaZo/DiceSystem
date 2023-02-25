@@ -1,19 +1,14 @@
 package thedivazo.parserexpression.parser;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import com.oracle.truffle.js.nodes.access.LocalVarIncNode;
+import lombok.*;
 import org.apache.commons.collections4.list.SetUniqueList;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.SyntaxException;
 import thedivazo.parserexpression.lexer.Lexer;
 import thedivazo.parserexpression.lexer.Token;
 import thedivazo.parserexpression.lexer.TokenType;
-import thedivazo.parserexpression.parser.AST.BinaryOperatorNode;
-import thedivazo.parserexpression.parser.AST.ConditionNode;
-import thedivazo.parserexpression.parser.AST.FunctionOperatorNode;
-import thedivazo.parserexpression.parser.AST.UnaryOperatorNode;
+import thedivazo.parserexpression.parser.AST.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,9 +23,9 @@ import java.util.stream.Collectors;
 public class Parser {
 
     /*
+         TERNARY_OPERATOR: EXPR ("operand_1" EXPR "operand_2" EXPR)?
          BINARY_OPERATOR: OPERATOR_-1 ("operand" OPERATOR_-1)*
          UNARY_OPERATOR: "operand"? OPERATOR_-1
-         TERNARY_OPERATOR: EXPR "operand_1" EXPR "operand_2" EXPR
          FUNCTION: "function_name"\((expr)?(,expr)*\)
 
 
@@ -46,7 +41,7 @@ public class Parser {
 
         @Override
         public String toString() {
-            return signOperator;
+            return signOperator+operatorType;
         }
     }
 
@@ -59,11 +54,15 @@ public class Parser {
     /**
      * Метод, позволяющий добавить токен(ы) оператора(ов) в список приоритета.
      * Чем позже был добавлен оператор(ы) в список, тем более он(и) приоритетен(ны).
-     * @param operatorData Массив с неповторяющимися множествами операторов, которые вы хотите добавить в список приоритета
+     * @param operatorsData Массив с неповторяющимися множествами операторов, которые вы хотите добавить в список приоритета
      * @return возвращает состояние добавления
      */
-    public boolean addOperator(OperatorData... operatorData) {
-        return listOfPriorityOperator.add(Arrays.stream(operatorData).collect(Collectors.toSet()));
+    public boolean addOperator(OperatorData... operatorsData) {
+        Set<OperatorData> operatorDataSet = new LinkedHashSet<>();
+        for (OperatorData operatorData : operatorsData) {
+            operatorDataSet.add(operatorData);
+        }
+        return listOfPriorityOperator.add(operatorDataSet);
     }
 
 
@@ -90,27 +89,22 @@ public class Parser {
         return listOfPriorityOperator.get(indexPriority);
     }
 
-    public Node function(TokenBuffer tokenBuffer) throws CompileException {
-        Token currentToken = tokenBuffer.next();
-        if(!currentToken.lexemeType().equals(TokenType.FUNCTION)) return factor(tokenBuffer);
-        if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_START)) throw new SyntaxException("Compound start expected", currentToken.getPosition(), tokenBuffer.tokensToCode());
-        List<Node> expressionList = new ArrayList<>();
-        while (tokenBuffer.hasNext()) {
-            Node expression = expr(tokenBuffer);
-            expressionList.add(expression);
-            if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
-                tokenBuffer.next();
-                break;
-            };
-            if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
-                tokenBuffer.next();
-                continue;
-            }
-            else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
+    public Node ternaryOperator(TokenBuffer tokenBuffer, Set<OperatorData> operatorData, int indexPriority) throws CompileException {
+        OperatorData operatorDataOne = operatorData.stream().toList().get(0);
+        OperatorData operatorDataTwo = operatorData.stream().toList().get(1);
+        Node argumentOneNode = operator(tokenBuffer, indexPriority-1);
+        Token operatorOne = tokenBuffer.next();
+        if(!operatorOne.getSign().equals(operatorDataOne.getSignOperator()) || !operatorOne.getLexemeType().equals(TokenType.OPERATOR)){
+            tokenBuffer.prev();
+            return argumentOneNode;
         }
-        FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign(), functionAndNumberArgument.get(currentToken.getSign()));
-        functionOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
-        return functionOperatorNode;
+        Node argumentTwoNode = operator(tokenBuffer, indexPriority-1);
+        Token operatorTwo = tokenBuffer.next();
+        if(!operatorTwo.getLexemeType().equals(TokenType.OPERATOR) && operatorDataTwo.getOperatorType().equals(OperatorType.TERNARY_2)) throw new SyntaxException("Ternary operator expected", operatorTwo.getPosition(), tokenBuffer.tokensToCode());
+        Node argumentThreeNode = operator(tokenBuffer, indexPriority-1);
+        TernaryOperatorNode ternaryOperatorNode = new TernaryOperatorNode(operatorOne.getSign()+operatorTwo.getSign());
+        ternaryOperatorNode.setNodes(argumentOneNode, argumentTwoNode, argumentThreeNode);
+        return ternaryOperatorNode;
     }
 
     public Node binaryOperator(TokenBuffer tokenBuffer, Set<OperatorData> operatorsData, int indexPriority) throws CompileException {
@@ -149,13 +143,19 @@ public class Parser {
     public Node operator(TokenBuffer tokenBuffer,int indexPriority) throws CompileException {
         if(indexPriority < 0) return factor(tokenBuffer);
         Set<OperatorData> operatorsData = getOperatorForIndex(indexPriority);
+        if(operatorsData.size() == 2) {
+            List<OperatorData> operatorDataList = operatorsData.stream().toList();
+            if(operatorDataList.get(0).getOperatorType().equals(OperatorType.TERNARY_1) && operatorDataList.get(1).getOperatorType().equals(OperatorType.TERNARY_2))
+                return ternaryOperator(tokenBuffer, operatorsData, indexPriority);
+        }
         if(operatorsData.stream().allMatch(operatorData -> operatorData.getOperatorType().equals(OperatorType.BINARY))) return binaryOperator(tokenBuffer, operatorsData, indexPriority);
-        if(operatorsData.stream().allMatch(operatorData -> operatorData.getOperatorType().equals(OperatorType.UNARY))) return unaryOperator(tokenBuffer, operatorsData, indexPriority);
-        else throw new CompileException("Operators of different kinds must have different precedence");
+        else if(operatorsData.stream().allMatch(operatorData -> operatorData.getOperatorType().equals(OperatorType.UNARY))) return unaryOperator(tokenBuffer, operatorsData, indexPriority);
+        else {
+            System.out.println(operatorsData.stream().toList().get(0));
+            System.out.println(operatorsData.stream().toList().get(1));
+            throw new CompileException("Operators of different kinds must have different precedence");
+        }
     }
-
-
-
 
     public Node factor(TokenBuffer tokenBuffer) throws CompileException {
         Token currentToken = tokenBuffer.next();
@@ -179,6 +179,29 @@ public class Parser {
             default -> throw new SyntaxException("Unknown condition", currentToken.getPosition(), tokenBuffer.tokensToCode());
 
         }
+    }
+
+    public Node function(TokenBuffer tokenBuffer) throws CompileException {
+        Token currentToken = tokenBuffer.next();
+        if(!currentToken.lexemeType().equals(TokenType.FUNCTION)) return factor(tokenBuffer);
+        if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_START)) throw new SyntaxException("Compound start expected", currentToken.getPosition(), tokenBuffer.tokensToCode());
+        List<Node> expressionList = new ArrayList<>();
+        while (tokenBuffer.hasNext()) {
+            Node expression = expr(tokenBuffer);
+            expressionList.add(expression);
+            if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
+                tokenBuffer.next();
+                break;
+            };
+            if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
+                tokenBuffer.next();
+                continue;
+            }
+            else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
+        }
+        FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign(), functionAndNumberArgument.get(currentToken.getSign()));
+        functionOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
+        return functionOperatorNode;
     }
 
     protected String tokensToCode(List<Token> tokenList) {
