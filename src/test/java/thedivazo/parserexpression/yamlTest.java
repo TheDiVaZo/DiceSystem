@@ -1,22 +1,12 @@
+package thedivazo.parserexpression;
+
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
-import org.mvel2.MVEL;
 
-import java.awt.*;
-import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-public class test {
-
-    @Test
-    void fff() {
-        Serializable serializable = MVEL.compileExpression("f:d && false", new HashMap<>(){{put("f:d", true);}});
-        System.out.println(MVEL.executeExpression(serializable));
-    }
+public class yamlTest {
 
     @Test
     void test1() throws InvalidConfigurationException {
@@ -32,4 +22,6 @@ public class test {
             }
             System.out.println("---------------------------");
         }
-    }}
+
+    }
+}

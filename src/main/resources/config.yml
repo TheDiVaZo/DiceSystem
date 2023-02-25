@@ -1,25 +1,20 @@
 version: 1.0
 
 condition:
-  - group_1: "hand:diamond_sword || hand:wooden_sword && permission:moh.su"
-  - group_2: "group_1 || head:diamond_helmet"
-  - group_3: "foot:diamond_boots || sun_phase:6"
+  group_1: "hand:diamond_sword || hand:wooden_sword && permission:moh.test.permission"
+  group_2: "group_1 || head:diamond_helmet"
+  group_3: "foot:diamond_boots || sun_phase:6"
 
 restrictions:
   rest_1:
-    condition: "group_1 || group_3"
-    count_point:
-      operation: add #add or set
-      count: "20" # math expression
+    condition: "hand:diamond_sword || sun_phase:6"
+    count_point: "cos(4)+sin(8)-pow(sin(PI/3,2)"
   rest_2:
-    condition: "!(group_1 && group_3) || (!group_1 == group_2)"
-    count_point:
-      operation: add
-      count: "-20"
+    condition: "hand:diamond_sword || sun_phase:6"
+    count_point: "log10(2)"
   rest_3:
     condition: "hand:diamond_sword || sun_phase:6"
-    count_point:
-      operation: add
-      count: "cos(4)+sin(8)-pow(sin(PI/3,2)"
-
-
+    count_point: "%player_health%/2 + rest_1"
+  rest_4:
+    condition: "hand:diamond_sword || sun_phase:6"
+    count_point: "max(rest_1,rest_2,rest_3) + %player_world_time_24%"

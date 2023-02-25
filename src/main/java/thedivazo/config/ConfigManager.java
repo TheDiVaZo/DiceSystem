@@ -2,11 +2,9 @@ package thedivazo.config;
 
 import api.logging.Logger;
 import lombok.Getter;
-import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import thedivazo.DiceSystem;
 import thedivazo.utils.ConfigUtils;
 
@@ -15,9 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
-
-import static org.bukkit.Bukkit.getServer;
+import java.util.*;
 
 public class ConfigManager {
 
@@ -31,6 +27,17 @@ public class ConfigManager {
     private boolean isPAPILoaded = false;
     @Getter
     private boolean isVault = false;
+
+
+    protected Map<String, String> conditions = new HashMap<>();
+    protected List<Restrictions> restrictionsList = new ArrayList<>();
+
+    public Map<String, String> getConditions() {
+        return Collections.unmodifiableMap(conditions);
+    }
+    public List<Restrictions> getRestrictionsList() {
+        return Collections.unmodifiableList(restrictionsList);
+    }
 
 
     public ConfigManager(DiceSystem plugin) {
@@ -83,6 +90,45 @@ public class ConfigManager {
 
     public void updateConfig() {
         //todo: write method
+    }
+
+    public void updateCondition() {
+        conditions.clear();
+        ConfigurationSection configurationSection = fileConfig.getConfigurationSection("condition");
+        assert configurationSection!=null;
+        for (String conditionName : configurationSection.getKeys(false)) {
+            String condition = configurationSection.getString(conditionName);
+            conditions.put(conditionName, condition);
+        }
+    }
+
+    interface Restrictions {
+        String getCondition();
+        String getCountPoint();
+    }
+
+    public void updateRestrictions() {
+        restrictionsList.clear();
+        ConfigurationSection configurationSection = fileConfig.getConfigurationSection("restrictions");
+        assert configurationSection != null;
+        for (String rest : configurationSection.getKeys(false)) {
+            ConfigurationSection restSection = configurationSection.getConfigurationSection(rest);
+            assert restSection != null;
+            restrictionsList.add(new Restrictions() {
+
+                private final String condition = restSection.getString("condition");
+                private final String countPoint = restSection.getString("count_point");
+                @Override
+                public String getCondition() {
+                    return condition;
+                }
+
+                @Override
+                public String getCountPoint() {
+                    return countPoint;
+                }
+            });
+        }
     }
 
     public String getConfigString() {
