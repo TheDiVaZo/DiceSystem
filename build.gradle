@@ -34,13 +34,13 @@ compileJava {
 dependencies {
     compileOnly fileTree(dir: 'libs', include: '*.jar')
 
-    testCompileOnly fileTree(dir: 'libs', include: '*.jar')
-
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
 
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
     compileOnly "com.github.MilkBowl:VaultAPI:1.7"
 

@@ -62,9 +62,9 @@ class InterpreterTest {
         parser.addOperator(new Parser.OperatorData("*", OperatorType.BINARY),new Parser.OperatorData("/", OperatorType.BINARY));
         parser.addOperator(new Parser.OperatorData("+", OperatorType.BINARY), new Parser.OperatorData("-", OperatorType.BINARY));
 
-        parser.addNumberFunctionArgument("cos",1);
-        parser.addNumberFunctionArgument("sin",1);
-        parser.addNumberFunctionArgument("pow",2);
+        parser.addNumberFunctionArgument("cos",count->count==1);
+        parser.addNumberFunctionArgument("sin",count->count==1);
+        parser.addNumberFunctionArgument("pow",count->count==2);
         System.out.println(parser.parsing(tokenList));
 
         Interpreter<Double, Double> interpreter = new Interpreter<>();

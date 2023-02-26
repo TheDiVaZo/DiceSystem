@@ -1,5 +1,6 @@
 package thedivazo.parserexpression;
 
+import com.mojang.datafixers.types.Func;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import thedivazo.parserexpression.exception.CompileException;
@@ -15,6 +16,7 @@ import thedivazo.utils.TernaryOperator;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -27,17 +29,17 @@ public class ParserExpression<T, R> {
     private final Parser parser = new Parser();
     private final Interpreter<T, R> interpreter = new Interpreter<>();
 
-    interface TernaryOperatorWrapper<V> {
+    public interface TernaryOperatorWrapper<V> {
         String getSignOne();
         String getSignTwo();
         TernaryOperator<V> getTernaryOperator();
     }
 
-    interface BinaryOperatorWrapper<V> {
+    public interface BinaryOperatorWrapper<V> {
         String getSign();
         BinaryOperator<V> getBinaryOperator();
     }
-    interface UnaryOperatorWrapper<V> {
+    public interface UnaryOperatorWrapper<V> {
         String getSign();
         UnaryOperator<V> getUnaryOperator();
     }
@@ -86,9 +88,9 @@ public class ParserExpression<T, R> {
         interpreter.addCondition(sign, condition);
     }
 
-    public void addFunction(String sign, Function<List<R>,R> function, Integer countArgument) {
+    public void addFunction(String sign, Function<List<R>,R> function, Function<Integer, Boolean> argumentCompare) {
         lexer.putOperator(sign, TokenType.FUNCTION);
-        parser.addNumberFunctionArgument(sign, countArgument);
+        parser.addNumberFunctionArgument(sign, argumentCompare);
         interpreter.addFunctionOperator(sign, function);
     }
 

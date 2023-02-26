@@ -1,9 +1,11 @@
 package thedivazo.parserexpression.parser;
 
+import com.mojang.datafixers.types.Func;
 import com.oracle.truffle.js.nodes.access.LocalVarIncNode;
 import lombok.*;
 import org.apache.commons.collections4.list.SetUniqueList;
 import thedivazo.parserexpression.exception.CompileException;
+import thedivazo.parserexpression.exception.ConditionException;
 import thedivazo.parserexpression.exception.SyntaxException;
 import thedivazo.parserexpression.lexer.Lexer;
 import thedivazo.parserexpression.lexer.Token;
@@ -11,6 +13,8 @@ import thedivazo.parserexpression.lexer.TokenType;
 import thedivazo.parserexpression.parser.AST.*;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +27,8 @@ import java.util.stream.Collectors;
 public class Parser {
 
     /*
-         TERNARY_OPERATOR: EXPR ("operand_1" EXPR "operand_2" EXPR)?
-         BINARY_OPERATOR: OPERATOR_-1 ("operand" OPERATOR_-1)*
+         TERNARY_OPERATOR: OPERATOR_-1 ("operand_1" TERNARY_OPERATOR "operand_2" TERNARY_OPERATOR)?
+         BINARY_OPERATOR: OPERATOR_-1 "operand" BINARY_OPERATOR
          UNARY_OPERATOR: "operand"? OPERATOR_-1
          FUNCTION: "function_name"\((expr)?(,expr)*\)
 
@@ -48,7 +52,7 @@ public class Parser {
 
     private final List<Set<OperatorData>> listOfPriorityOperator = SetUniqueList.setUniqueList(new ArrayList<>());
 
-    private final Map<String, Integer> functionAndNumberArgument = new HashMap<>();
+    private final Map<String, Function<Integer, Boolean>> functionAndNumberArgument = new HashMap<>();
 
 
     /**
@@ -66,8 +70,8 @@ public class Parser {
     }
 
 
-    public void addNumberFunctionArgument(String functionSign, Integer numberArgument) {
-        functionAndNumberArgument.put(functionSign, numberArgument);
+    public void addNumberFunctionArgument(String functionSign, Function<Integer, Boolean> argumentCompare) {
+        functionAndNumberArgument.put(functionSign, argumentCompare);
     }
 
     /**
@@ -98,10 +102,10 @@ public class Parser {
             tokenBuffer.prev();
             return argumentOneNode;
         }
-        Node argumentTwoNode = operator(tokenBuffer, indexPriority-1);
+        Node argumentTwoNode = operator(tokenBuffer, indexPriority);
         Token operatorTwo = tokenBuffer.next();
         if(!operatorTwo.getLexemeType().equals(TokenType.OPERATOR) && operatorDataTwo.getOperatorType().equals(OperatorType.TERNARY_2)) throw new SyntaxException("Ternary operator expected", operatorTwo.getPosition(), tokenBuffer.tokensToCode());
-        Node argumentThreeNode = operator(tokenBuffer, indexPriority-1);
+        Node argumentThreeNode = operator(tokenBuffer, indexPriority);
         TernaryOperatorNode ternaryOperatorNode = new TernaryOperatorNode(operatorOne.getSign()+operatorTwo.getSign());
         ternaryOperatorNode.setNodes(argumentOneNode, argumentTwoNode, argumentThreeNode);
         return ternaryOperatorNode;
@@ -131,7 +135,7 @@ public class Parser {
         Node argument = null;
         if(operatorsData.stream().anyMatch(operatorData -> operatorData.getSignOperator().equals(token.getSign())) && token.getLexemeType().equals(TokenType.OPERATOR)) {
             UnaryOperatorNode unaryOperatorNode = new UnaryOperatorNode(token.getSign());
-            argument = operator(tokenBuffer, indexPriority-1);
+            argument = operator(tokenBuffer, indexPriority);
             unaryOperatorNode.setNodes(argument);
             return unaryOperatorNode;
         }
@@ -199,7 +203,8 @@ public class Parser {
             }
             else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
         }
-        FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign(), functionAndNumberArgument.get(currentToken.getSign()));
+        if(!functionAndNumberArgument.get(currentToken.getSign()).apply(expressionList.size())) throw new SyntaxException(String.format("The function does not take %s arguments. Please see the documentation for how many arguments the function takes.",expressionList.size()),currentToken.getPosition(),tokenBuffer.tokensToCode());
+        FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign());
         functionOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
         return functionOperatorNode;
     }

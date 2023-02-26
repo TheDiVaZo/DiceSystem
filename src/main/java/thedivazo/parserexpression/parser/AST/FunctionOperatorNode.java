@@ -2,17 +2,16 @@ package thedivazo.parserexpression.parser.AST;
 
 import thedivazo.parserexpression.parser.Node;
 
-public class FunctionOperatorNode extends OperatorNode {
+import java.util.List;
+import java.util.function.Function;
 
-    private int numberArgument;
-    public FunctionOperatorNode(String nodeName, int numberArgument) {
+public class FunctionOperatorNode extends OperatorNode {
+    public FunctionOperatorNode(String nodeName) {
         super(nodeName);
-        this.numberArgument = numberArgument;
     }
 
     @Override
     public boolean setNodes(Node... nodes) {
-        if(nodes.length!=numberArgument) throw new IllegalArgumentException(String.format("A function operator \"%s\" must have %s arguments.", nodeName, numberArgument));
         return super.setNodes(nodes);
     }
 }
