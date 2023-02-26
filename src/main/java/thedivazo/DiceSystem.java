@@ -3,13 +3,17 @@ package thedivazo;
 import api.logging.Logger;
 import api.logging.handlers.JULHandler;
 import co.aikar.commands.PaperCommandManager;
+import lombok.Getter;
 import lombok.Setter;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.annotation.plugin.*;
 import org.bukkit.plugin.java.annotation.plugin.author.Author;
 import thedivazo.config.ConfigManager;
+import thedivazo.dice.DiceManager;
 import thedivazo.metrics.MetricsManager;
 import thedivazo.parserexpression.ParserExpression;
 import thedivazo.utils.TernaryOperator;
@@ -36,9 +40,11 @@ import java.util.regex.Pattern;
 @Author(value = "TheDiVaZo")
 @ApiVersion(value = ApiVersion.Target.v1_13)
 public class DiceSystem extends JavaPlugin {
+    @Getter
+    private final DiceManager diceManager = new DiceManager();
 
     @Setter
-    ParserExpression<Constable, Constable> parserExpression;
+    private ParserExpression<Player, Constable> parserExpression;
 
     private final PaperCommandManager manager = new PaperCommandManager(this);
     private static ConfigManager configManager;
@@ -60,6 +66,7 @@ public class DiceSystem extends JavaPlugin {
         api.logging.Logger.init(new JULHandler(getLogger()));
         api.logging.Logger.info("Starting...");
         setConfigManager(new ConfigManager(DiceSystem.getInstance()));
+        generateDefaultParser();
         checkPluginVersion();
         new MetricsManager(this);
         registerEvents();
@@ -82,6 +89,7 @@ public class DiceSystem extends JavaPlugin {
         getConfigManager().reloadConfigFile();
         registerEvents();
         registerCommands();
+        getDiceManager().reload(getConfigManager());
     }
 
     private void checkPluginVersion() {
@@ -313,14 +321,6 @@ public class DiceSystem extends JavaPlugin {
                     }
                 });
 
-        //Condition and constant
-        parserExpression.addCondition("PI", aDouble -> Math.PI);
-        parserExpression.addCondition("E", aDouble -> Math.E);
-        parserExpression.addCondition("[0-9]+(\\.[0-9]+)?");
-        parserExpression.addCondition("true", cond->true);
-        parserExpression.addCondition("false", cond->false);
-        parserExpression.setAlternativeConditionParser(Double::parseDouble);
-
         parserExpression.addDelimiter("\\,");
         parserExpression.addSkipSymbols(" +");
         parserExpression.addCompoundOperators("\\(","\\)");
@@ -352,5 +352,16 @@ public class DiceSystem extends JavaPlugin {
         parserExpression.addFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
 
         parserExpression.addFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+
+        //Condition and constant
+        parserExpression.addCondition("PI", Math.PI);
+        parserExpression.addCondition("E", Math.E);
+        parserExpression.addCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
+        parserExpression.addCondition("\\%.+?\\%",(player, placeholder)-> getConfigManager().placeholderSet(player, placeholder));
+        parserExpression.addCondition("true", true);
+        parserExpression.addCondition("false", false);
+        parserExpression.addCondition("[a-zA-Z_]+\\:[0-9a-zA-Z_]+");
+        parserExpression.addCondition("[a-zA-Z_]+");
+        parserExpression.setAlternativeConditionParser(Double::parseDouble);
     }
 }

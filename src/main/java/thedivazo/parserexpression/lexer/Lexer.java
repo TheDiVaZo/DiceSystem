@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 /**
  * Лексер, который подвергает код лексическому анализу, и по завершению выдает список токенов.
  * @author TheDiVaZo
- * @version 1.0
+ * @version 1.1
  *
  */
 @NoArgsConstructor
@@ -23,7 +23,6 @@ public class Lexer {
     protected Map<String, TokenType> tokenTypeSet = new LinkedMap<>();
 
     /**
-     * Важное уточнение: все regEx'ы должны удовлетворять условию Фано.
      * @param regEx regEx, по которому будет присваиваться тип токена
      * @param tokenType Тип токена
      */
@@ -63,6 +62,7 @@ public class Lexer {
                     token = matcher.group();
                     currentRegEx = regEx;
                     tokenType = tokenTypeSet.getOrDefault(regEx, null);
+                    break;
                 }
             }
             if(Objects.isNull(token) || Objects.isNull(tokenType)) {

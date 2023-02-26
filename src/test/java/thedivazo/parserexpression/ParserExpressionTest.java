@@ -9,7 +9,9 @@ import thedivazo.utils.TernaryOperator;
 
 import java.io.Serializable;
 import java.lang.constant.Constable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -227,18 +229,6 @@ class ParserExpressionTest {
                     }
                 });
 
-        //Condition and constant
-        parserExpression.addCondition("PI", aDouble -> Math.PI);
-        parserExpression.addCondition("E", aDouble -> Math.E);
-        parserExpression.addCondition("([0-9]+(\\.[0-9]+)?)");
-        parserExpression.addCondition("true", cond->true);
-        parserExpression.addCondition("false", cond->false);
-        parserExpression.setAlternativeConditionParser(NumberUtils::createDouble);
-
-        parserExpression.addDelimiter("\\,");
-        parserExpression.addSkipSymbols(" +");
-        parserExpression.addCompoundOperators("\\(","\\)");
-
         //function
         parserExpression.addFunction("cos", doubles -> Math.cos((double) doubles.get(0)), count->count==1);
         parserExpression.addFunction("sin", doubles -> Math.sin((double) doubles.get(0)), count->count==1);
@@ -266,6 +256,21 @@ class ParserExpressionTest {
         parserExpression.addFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(Double.class::cast).toArray()), count->count>=2);
 
         parserExpression.addFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+
+        //Condition and constant
+        parserExpression.addCondition("PI", Math.PI);
+        parserExpression.addCondition("E", Math.E);
+
+        parserExpression.addCondition("[a-zA-Z_]+"); //regEx in localConditions
+
+        parserExpression.addCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign)); //todo: ERROR!
+        parserExpression.addCondition("true", true);
+        parserExpression.addCondition("false", false);
+        //parserExpression.setAlternativeConditionParser(NumberUtils::createDouble); //todo: ERROR!
+        //todo: ERROR!
+        parserExpression.addDelimiter("\\,");
+        parserExpression.addSkipSymbols(" +");
+        parserExpression.addCompoundOperators("\\(","\\)");
     }
 
     @Test
@@ -296,5 +301,12 @@ class ParserExpressionTest {
         assertEquals(-92d, (double) parserExpression.execute(code10));
         assertEquals(-228d, (double) parserExpression.execute(code11));
         assertEquals(11.566667d, (double) parserExpression.execute(code12));
+    }
+
+    @Test
+    void localConditionTest() throws InterpreterException, CompileException {
+        Map<String, Constable> localConditions = new HashMap<>(){{put("test_condition", 5d);}};
+
+        assertEquals(10d, parserExpression.execute("test_condition + 5", 0d, localConditions));
     }
 }

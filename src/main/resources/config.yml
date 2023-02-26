@@ -1,20 +1,43 @@
 version: 1.0
 
-condition:
-  group_1: "hand:diamond_sword || hand:wooden_sword && permission:moh.test.permission"
-  group_2: "group_1 || head:diamond_helmet"
+variables: #variables that you would like to save for future use are specified here. Variables can only contain text type
+  fail: "&cПровал" #default text
+  success: "&cУспех! Ты молодец на {random(0,100)}%" #If you want to insert arbitrary code into the text, write it in {} brackets
+  placeholder: "&cкакой-то плейсхоледр: %placeholder_test%" #this is how placeholders from PAPI are inserted
+
+condition: #Conditions are specified here. These conditions are similar to variables, but the conditions only contain code, and the code must produce one of two results: true or else
+  group_1: "hand:diamond_sword || hand:wooden_sword && permission:test.permission" #Code in the condition. Command "hand:diamond_sword" checks if the player has a diamond sword in his main hand
+  group_2: "group_1 || head:diamond_helmet" #This condition uses the code from the "group_1" condition.
   group_3: "foot:diamond_boots || sun_phase:6"
 
-restrictions:
+restrictions: #This section indicates how many points are given for fulfilling the condition.
   rest_1:
-    condition: "hand:diamond_sword || sun_phase:6"
-    count_point: "cos(4)+sin(8)-pow(sin(PI/3,2)"
+    condition: "group_1 && group_2" #List of conditions. You can also insert custom code
+    count_point: "10" #number, or a code that returns a numeric type
   rest_2:
-    condition: "hand:diamond_sword || sun_phase:6"
-    count_point: "log10(2)"
+    condition: "hand:wooden_sword && %player_health% > 4 && group_4" #Placeholders can be embedded in any code. But placeholders must be either boolean or numeric
+    count_point: "4+5-2*3+(3*3)*2" #custom code
   rest_3:
-    condition: "hand:diamond_sword || sun_phase:6"
+    condition: "hand:diamond_sword || moon_phase:6"
     count_point: "%player_health%/2 + rest_1"
   rest_4:
-    condition: "hand:diamond_sword || sun_phase:6"
+    condition: "(hand:diamond_sword || sun_phase:6) && %placeholder_exp% != 0"
     count_point: "max(rest_1,rest_2,rest_3) + %player_world_time_24%"
+
+dice_types: #Throw types. The player can roll both defense and attack.
+  defend:
+    dice: "rest_1 >= 50 ? rest_1:0" #Variables from the "restrictions" section are specified here. It is also possible to insert arbitrary code. But the code should only return a numeric value
+    text: "&7Вы кинули дайс на защиту. Вам выпало: &c{dice}" #This is just text. To insert a value from dice, just write {dice} in the text
+    permission: "dicesystem.defend"
+  defendMagic:
+    dice: "permission:magic.is.magic ? rest_1+rest_2:0"
+    text: "&7Вы кинули дайс на маг. защиту. Вам выпало: &c{dice*10}" #it is also possible to insert arbitrary code in {}. Code returns any value
+    permission: "dicesystem.defendMagic"
+  test:
+    dice: "%dicesystem_bonus% + rest_1" #%dicesystem_bonus% - number or code by which an additional bonus is calculated for this player. Each player can set their own bonus
+    text: "&7Тестовый ролл. Бонус к дайсу игрока: &c{dice}"
+    permission: "dicesystem.test"
+  test2:
+    dice: "%dicesystem_bonus% + test" #You can also use data from other dice
+    text: "&7Тестовый ролл. Бонус к дайсу игрока: &c{dice}"
+    permission: "dicesystem.test2"
