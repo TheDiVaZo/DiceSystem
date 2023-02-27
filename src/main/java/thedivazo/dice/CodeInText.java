@@ -13,14 +13,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CodeInText {
+public class CodeInText<T, R> {
     private static final Pattern patternCode = Pattern.compile("\\{(.+?)\\}");
 
-    private final ParserExpression<Object, Object> parserExpression;
+    private final ParserExpression<T, R> parserExpression;
     private final String originalText;
     private List<Serializable> codesBlockInText;
 
-    public CodeInText(String originalText, ParserExpression<Object, Object> parserExpression) throws CompileException {
+    public CodeInText(String originalText, ParserExpression<T, R> parserExpression) throws CompileException {
         this.originalText = originalText;
         this.parserExpression = parserExpression;
         compileCodeInText();
@@ -35,7 +35,7 @@ public class CodeInText {
         codesBlockInText = listCode;
     }
 
-    public String getText(Object input, Map<String, Object> localConditions) throws InterpreterException, CompileException {
+    public String getText(T input, Map<String, R> localConditions) throws InterpreterException, CompileException {
         String text = originalText;
         for (Serializable serializable : codesBlockInText) {
             text = text.replaceFirst(patternCode.pattern(), parserExpression.execute(serializable, input, localConditions).toString());

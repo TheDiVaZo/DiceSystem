@@ -5,7 +5,7 @@ import api.logging.handlers.JULHandler;
 import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
 import lombok.Setter;
-import me.clip.placeholderapi.PlaceholderAPI;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -16,12 +16,11 @@ import thedivazo.config.ConfigManager;
 import thedivazo.dice.DiceManager;
 import thedivazo.metrics.MetricsManager;
 import thedivazo.parserexpression.ParserExpression;
+import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.utils.TernaryOperator;
-import thedivazo.parserexpression.exception.*;
-import thedivazo.utils.*;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
+
 import java.lang.constant.Constable;
+import java.math.BigDecimal;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
@@ -43,6 +42,7 @@ public class DiceSystem extends JavaPlugin {
     @Getter
     private final DiceManager diceManager = new DiceManager();
 
+    @Getter
     @Setter
     private ParserExpression<Player, Constable> parserExpression;
 
@@ -83,7 +83,7 @@ public class DiceSystem extends JavaPlugin {
         });
     }
 
-    public void reloadConfigManager() {
+    public void reloadConfigManager() throws CompileException {
         saveDefaultConfig();
         reloadConfig();
         getConfigManager().reloadConfigFile();
@@ -115,6 +115,10 @@ public class DiceSystem extends JavaPlugin {
 
     protected void generateDefaultParser() {
         parserExpression = new ParserExpression<>();
+
+        //String type variable
+        parserExpression.setCondition("'.+?'", (input, string)->string.substring(1,string.length()-1));
+
         //arithmetic operators
         // unary "-"
         parserExpression.addUnaryOperator(
@@ -126,10 +130,13 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public UnaryOperator<Constable> getUnaryOperator() {
-                        return aDouble -> -Double.parseDouble(aDouble.toString());
+                        return object -> {
+                            if(NumberUtils.isCreatable(object.toString())) return -NumberUtils.createDouble(object.toString());
+                            else return BooleanUtils.toBoolean(object.toString());
+                        };
                     }
                 });
-        // "*" and "/" and "%"
+        // "*" and and "//" and "/" and "%"
         parserExpression.addBinaryOperator(
                 new ParserExpression.BinaryOperatorWrapper<>() {
                     @Override
@@ -139,7 +146,18 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public BinaryOperator<Constable> getBinaryOperator() {
-                        return (aDouble, aDouble2) -> Double.parseDouble(aDouble.toString())*Double.parseDouble(aDouble2.toString());
+                        return (aDouble, aDouble2) ->(Double) aDouble * (Double) aDouble2;
+                    }
+                },
+                new ParserExpression.BinaryOperatorWrapper<>() {
+                    @Override
+                    public String getSign() {
+                        return "//";
+                    }
+
+                    @Override
+                    public BinaryOperator<Constable> getBinaryOperator() {
+                        return (aDouble, aDouble2) ->(double)((int) ((Double) aDouble / (Double) aDouble2));
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
@@ -150,7 +168,7 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public BinaryOperator<Constable> getBinaryOperator() {
-                        return (aDouble, aDouble2) -> Double.parseDouble(aDouble.toString())/Double.parseDouble(aDouble2.toString());
+                        return (aDouble, aDouble2) ->(Double) aDouble / (Double) aDouble2;
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
@@ -161,7 +179,7 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public BinaryOperator<Constable> getBinaryOperator() {
-                        return (aDouble, aDouble2) -> Double.parseDouble(aDouble.toString())%Double.parseDouble(aDouble2.toString());
+                        return (aDouble, aDouble2) ->(Double) aDouble % (Double) aDouble2;
                     }
                 });
         // "+" and "-"
@@ -174,7 +192,13 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public BinaryOperator<Constable> getBinaryOperator() {
-                        return (aDouble1, aDouble2)->Double.parseDouble(aDouble1.toString())+Double.parseDouble(aDouble2.toString());
+                        return (object1, object2)->{
+                            if(object1 instanceof Double double1 && object2 instanceof Double double2)
+                                return double1+double2;
+                            else if(object1 instanceof Double double1) return BigDecimal.valueOf(double1).stripTrailingZeros().toPlainString() + object2.toString();
+                            else if(object2 instanceof Double double2) return object1.toString() + BigDecimal.valueOf(double2).stripTrailingZeros().toPlainString();
+                            else return object1.toString()+object2.toString();
+                        };
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
@@ -185,7 +209,7 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public BinaryOperator<Constable> getBinaryOperator() {
-                        return (aDouble, aDouble2) -> Double.parseDouble(aDouble.toString())-Double.parseDouble(aDouble2.toString());
+                        return (aDouble, aDouble2) -> (Double) aDouble - (Double) aDouble2;
                     }
                 });
 
@@ -249,16 +273,16 @@ public class DiceSystem extends JavaPlugin {
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
-            @Override
-            public String getSign() {
-                return "!=";
-            }
+                    @Override
+                    public String getSign() {
+                        return "!=";
+                    }
 
-            @Override
-            public BinaryOperator<Constable> getBinaryOperator() {
-                return (obj1, obj2)->!obj1.equals(obj2);
-            }
-        });
+                    @Override
+                    public BinaryOperator<Constable> getBinaryOperator() {
+                        return (obj1, obj2)->!obj1.equals(obj2);
+                    }
+                });
 
         //Boolean operators
         // unary "!"
@@ -271,7 +295,10 @@ public class DiceSystem extends JavaPlugin {
 
                     @Override
                     public UnaryOperator<Constable> getUnaryOperator() {
-                        return bolean1 -> !(boolean) bolean1;
+                        return (anyObject)->{
+                            if(anyObject instanceof Double doubleObject) return -doubleObject;
+                            else return  !(boolean) (anyObject);
+                        };
                     }
                 });
         // "&&"
@@ -326,42 +353,60 @@ public class DiceSystem extends JavaPlugin {
         parserExpression.addCompoundOperators("\\(","\\)");
 
         //function
-        parserExpression.addFunction("cos", doubles -> Math.cos((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("sin", doubles -> Math.sin((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("tg", doubles -> Math.tan((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("cos", doubles -> Math.cos((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("sin", doubles -> Math.sin((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("tg", doubles -> Math.tan((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)), count->count==1);
 
-        parserExpression.addFunction("abs", doubles -> Math.abs((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("floor", doubles -> Math.floor((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("round", doubles -> Math.round((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("rint", doubles -> Math.rint((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)), count->count==2);
+        parserExpression.setFunction("abs", doubles -> Math.abs((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("floor", doubles -> Math.floor((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("round", doubles -> Math.round((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("rint", doubles -> Math.rint((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)), count->count==2);
 
-        parserExpression.addFunction("ln", doubles -> Math.log((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("exp", doubles -> Math.exp((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)), count->count==2);
-        parserExpression.addFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)), count->count==2);
-        parserExpression.addFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)), count->count==1);
-        parserExpression.addFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("ln", doubles -> Math.log((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("exp", doubles -> Math.exp((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)), count->count==2);
+        parserExpression.setFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)), count->count==2);
+        parserExpression.setFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)), count->count==1);
 
         
-        parserExpression.addFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0), count->count==2);
+        parserExpression.setFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0), count->count==2);
         
-        parserExpression.addFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
-        parserExpression.addFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
+        parserExpression.setFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
+        parserExpression.setFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
 
-        parserExpression.addFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+
+        parserExpression.setFunction("str", doubles->{
+            Constable constable = doubles.get(0);
+            if(constable instanceof Double double1) return BigDecimal.valueOf(double1).stripTrailingZeros().toPlainString();
+            else return constable.toString();
+        }, count->count==1);
+        parserExpression.setFunction("number", doubles->{
+            Constable constable = doubles.get(0);
+            if(NumberUtils.isCreatable(constable.toString())) return NumberUtils.createDouble(constable.toString());
+            else if(constable instanceof Boolean boolean1) return (boolean1) ? 1 : 0;
+            else return null;
+        }, count->count==1);
+        parserExpression.setFunction("boolean", objects->{
+            Constable constable = objects.get(0);
+            if(constable instanceof Boolean boolean1) return boolean1;
+            else if(constable instanceof Double double1) return BooleanUtils.toBoolean((int) double1.doubleValue());
+            else return BooleanUtils.toBoolean(constable.toString());
+        }, count->count==1);
 
         //Condition and constant
-        parserExpression.addCondition("PI", Math.PI);
-        parserExpression.addCondition("E", Math.E);
-        parserExpression.addCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
-        parserExpression.addCondition("\\%.+?\\%",(player, placeholder)-> getConfigManager().placeholderSet(player, placeholder));
-        parserExpression.addCondition("true", true);
-        parserExpression.addCondition("false", false);
-        parserExpression.addCondition("[a-zA-Z_]+\\:[0-9a-zA-Z_]+");
-        parserExpression.addCondition("[a-zA-Z_]+");
+        parserExpression.setCondition("PI", Math.PI);
+        parserExpression.setCondition("E", Math.E);
+        parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
+        parserExpression.setCondition("true", true);
+        parserExpression.setCondition("false", false);
+
+        parserExpression.setCondition("\\$[a-zA-Z_\\-0-9\\.]+");
+
         parserExpression.setAlternativeConditionParser(Double::parseDouble);
     }
 }

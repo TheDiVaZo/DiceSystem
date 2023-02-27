@@ -1,13 +1,10 @@
 package thedivazo.parserexpression;
 
-import com.mojang.datafixers.types.Func;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.InterpreterException;
 import thedivazo.parserexpression.interpreter.Interpreter;
 import thedivazo.parserexpression.lexer.Lexer;
-import thedivazo.parserexpression.lexer.Token;
 import thedivazo.parserexpression.lexer.TokenType;
 import thedivazo.parserexpression.parser.Node;
 import thedivazo.parserexpression.parser.OperatorType;
@@ -99,26 +96,27 @@ public class ParserExpression<T, R> {
     /**
      * @param sign строка, представляющая собой условие (переменную)
      */
-    public void addCondition(String sign) {
+    public void setCondition(String sign) {
         lexer.putOperator(sign, TokenType.CONDITION);
+        interpreter.addCondition(sign, null);
     }
 
     /**
      * @param regEx regEx относительно которого будет производиться поиск условий (переменных) в выражении
      * @param condition функция, являющееся обработчиком условия, принимающая на вход {@link String} и возвращающая R ({@link ParserExpression})
      */
-    public void addCondition(String regEx, BiFunction<T,String,R> condition) {
+    public void setCondition(String regEx, BiFunction<T,String,R> condition) {
         lexer.putOperator(regEx, TokenType.CONDITION);
         interpreter.addCondition(regEx, condition);
     }
 
     /**
-     * Аналогичен {@link ParserExpression#addCondition(String, BiFunction)}, только возвращается статичное значение
-     * @param regEx {@link ParserExpression#addCondition(String, BiFunction)}
+     * Аналогичен {@link ParserExpression#setCondition(String, BiFunction)}, только возвращается статичное значение
+     * @param regEx {@link ParserExpression#setCondition(String, BiFunction)}
      * @param result статичное значение R ({@link ParserExpression})
      */
-    public void addCondition(String regEx, R result) {
-        addCondition(regEx, (arg1,arg2)->result);
+    public void setCondition(String regEx, R result) {
+        setCondition(regEx, (arg1, arg2)->result);
     }
 
     /**
@@ -127,7 +125,7 @@ public class ParserExpression<T, R> {
      * @param function тело функции
      * @param argumentCompare обработчик аргументов.
      */
-    public void addFunction(String sign, Function<List<R>,R> function, Function<Integer, Boolean> argumentCompare) {
+    public void setFunction(String sign, Function<List<R>,R> function, Function<Integer, Boolean> argumentCompare) {
         lexer.putOperator(sign, TokenType.FUNCTION);
         parser.addNumberFunctionArgument(sign, argumentCompare);
         interpreter.addFunctionOperator(sign, function);
@@ -144,7 +142,7 @@ public class ParserExpression<T, R> {
     }
 
     /**
-     * добавляет оператор разграничения аргументов для функции ({@link ParserExpression#addFunction(String, Function, Function)})
+     * добавляет оператор разграничения аргументов для функции ({@link ParserExpression#setFunction(String, Function, Function)})
      * @param delimiter знак оператора
      */
     public void addDelimiter(String delimiter) {

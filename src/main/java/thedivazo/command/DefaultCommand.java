@@ -16,7 +16,7 @@ import java.util.Objects;
 public class DefaultCommand extends BaseCommand {
     @Subcommand("reload")
     @CommandPermission("moh.admin")
-    public void onCommand(CommandSender commandSender) {
+    public void onCommand(CommandSender commandSender) throws CompileException {
         DiceSystem.getInstance().reloadConfigManager();
         commandSender.sendMessage("Config has been reloaded");
     }
@@ -26,6 +26,6 @@ public class DefaultCommand extends BaseCommand {
     @CommandCompletion("@diceList")
     public static void onDice(Player player, String diceList) throws InterpreterException, CompileException {
          Dice dice = DiceSystem.getInstance().getDiceManager().getDice(diceList);
-         player.sendMessage(dice.diceText(player));
+         player.sendMessage(dice.diceText(player, null));
     }
 }

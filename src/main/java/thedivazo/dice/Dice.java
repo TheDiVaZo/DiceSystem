@@ -6,10 +6,12 @@ import thedivazo.parserexpression.ParserExpression;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.InterpreterException;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.lang.constant.Constable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 public final class Dice {
@@ -21,15 +23,15 @@ public final class Dice {
 
     private final ParserExpression<Player, Constable> parserExpression;
 
-    public Double throwDice(Player player) throws InterpreterException {
-        return (Double) parserExpression.execute(dice, player);
+    public Double throwDice(Player player, @Nullable Map<String, Constable> localArguments) throws InterpreterException {
+        return (Double) parserExpression.execute(dice, player, localArguments);
     }
 
-    public String diceText(Player player) throws InterpreterException, CompileException {
+    public String diceText(Player player, @Nullable Map<String, Constable> localArguments) throws InterpreterException, CompileException {
         Double diceNumber = (Double) parserExpression.execute(dice, player);
-        Map<String, Object> localCondition = new HashMap<>();
-        localCondition.put("dice", diceNumber);
-        return text.getText(player, localCondition);
+        if(Objects.isNull(localArguments)) localArguments = new HashMap<>();
+        localArguments.put("dice", diceNumber);
+        return text.getText(player, localArguments);
     }
 
 

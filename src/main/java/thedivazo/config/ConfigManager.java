@@ -2,7 +2,6 @@ package thedivazo.config;
 
 import api.logging.Logger;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -11,7 +10,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import thedivazo.DiceSystem;
-import thedivazo.dice.DiceManager;
 import thedivazo.utils.ConfigUtils;
 
 import java.io.BufferedReader;
@@ -37,16 +35,15 @@ public class ConfigManager {
 
     protected Map<String, String> variables = new HashMap<>();
     protected Map<String, String> conditions = new HashMap<>();
-    protected List<Restriction> restrictionList = new ArrayList<>();
-    protected List<DiceType> diceTypeList = new ArrayList<>();
+    protected Map<String, DiceType> diceTypes = new HashMap<>();
 
 
     public Map<String, String> getVariables() { return Collections.unmodifiableMap(variables); }
     public Map<String, String> getConditions() {
         return Collections.unmodifiableMap(conditions);
     }
-    public List<Restriction> getRestrictionList() {
-        return Collections.unmodifiableList(restrictionList);
+    public Map<String, DiceType> getDiceTypes() {
+        return Collections.unmodifiableMap(diceTypes);
     }
 
 
@@ -75,8 +72,6 @@ public class ConfigManager {
         this.configUtils.setConfig(fileConfig);
         saveSoftDependCondition();
         updateVariables();
-        updateConditions();
-        updateRestrictions();
         updateDiceTypes();
     }
 
@@ -116,52 +111,62 @@ public class ConfigManager {
         else throw new UnsupportedOperationException("PlaceholderAPI have not installed");
     }
 
-    @RequiredArgsConstructor
     @Getter
-    record Restriction(String condition, String codeGetPoint) {
-    }
+    public static final class DiceType {
+        private final String name;
+        private final String diceCode;
+        private final String text;
+        private final String permission;
 
-    @RequiredArgsConstructor
-    @Getter
-    record DiceType(String name, String diceCode, String text, String permission) {
+        public DiceType(String name, String diceCode, String text, String permission) {
+            this.name = name;
+            this.diceCode = diceCode;
+            this.text = text;
+            this.permission = permission;
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            if (obj == null || obj.getClass() != this.getClass()) return false;
+            var that = (DiceType) obj;
+            return Objects.equals(this.name, that.name) &&
+                    Objects.equals(this.diceCode, that.diceCode) &&
+                    Objects.equals(this.text, that.text) &&
+                    Objects.equals(this.permission, that.permission);
+        }
 
-    }
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, diceCode, text, permission);
+        }
+
+        @Override
+        public String toString() {
+            return "DiceType[" +
+                    "name=" + name + ", " +
+                    "diceCode=" + diceCode + ", " +
+                    "text=" + text + ", " +
+                    "permission=" + permission + ']';
+        }
+
+
+        }
 
     public void updateVariables() {
-        variables.clear();
-        ConfigurationSection configurationSection = fileConfig.getConfigurationSection("variables");
-        assert configurationSection != null;
-        for (String key : configurationSection.getKeys(false)) {
-            variables.put(key, configurationSection.getString(key));
-        }
-    }
-    public void updateConditions() {
-        conditions.clear();
-        ConfigurationSection configurationSection = fileConfig.getConfigurationSection("condition");
-        assert configurationSection!=null;
-        for (String conditionName : configurationSection.getKeys(false)) {
-            String condition = configurationSection.getString(conditionName);
-            conditions.put(conditionName, condition);
-        }
-    }
-    public void updateRestrictions() {
-        restrictionList.clear();
-        ConfigurationSection configurationSection = fileConfig.getConfigurationSection("restrictions");
-        assert configurationSection != null;
-        for (String rest : configurationSection.getKeys(false)) {
-            ConfigurationSection restSection = configurationSection.getConfigurationSection(rest);
-            assert restSection != null;
-            restrictionList.add(new Restriction(restSection.getString("condition"), restSection.getString("count_point")));
+        ConfigurationSection variablesSection = fileConfig.getConfigurationSection("variables");
+        if(Objects.isNull(variablesSection)) return;
+        for (String key : variablesSection.getKeys(true)) {
+            if(variablesSection.isString(key)) variables.put(key, variablesSection.getString(key));
         }
     }
     public void updateDiceTypes() {
-        diceTypeList.clear();
+        diceTypes.clear();
         ConfigurationSection configurationSection = fileConfig.getConfigurationSection("dice_types");
         assert configurationSection != null;
         for (String key : configurationSection.getKeys(false)) {
             ConfigurationSection diceTypeSection = configurationSection.getConfigurationSection(key);
             assert diceTypeSection != null;
-            diceTypeList.add(new DiceType(key, diceTypeSection.getString("dice"), diceTypeSection.getString("text"), diceTypeSection.getString("permission")));
+            diceTypes.put(key,new DiceType(key, diceTypeSection.getString("dice"), diceTypeSection.getString("text"), diceTypeSection.getString("permission")));
         }
     }
 
