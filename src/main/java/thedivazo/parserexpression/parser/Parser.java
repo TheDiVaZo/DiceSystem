@@ -163,7 +163,7 @@ public class Parser {
 
             case START_VARIABLE_SYMBOL -> {
                 Token variableToken = tokenBuffer.next();
-                if(variableToken.lexemeType() != TokenType.LOCAL_VARIABLE) throw new SyntaxException("Local argument expected", variableToken.getPosition(), tokenBuffer.tokensToCode());
+                if(variableToken.lexemeType() != TokenType.CONDITION) throw new SyntaxException("Local argument expected", variableToken.getPosition(), tokenBuffer.tokensToCode());
                 return new ConditionNode(variableToken.getSign());
             }
 

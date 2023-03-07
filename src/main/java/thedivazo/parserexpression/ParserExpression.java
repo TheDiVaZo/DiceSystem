@@ -38,12 +38,6 @@ public class ParserExpression<T, R extends B, B> {
         }
     }
 
-    public void addLocalVariablesRegExs(String... localVariablesRegExs) {
-        for (String localVariablesRegEx : localVariablesRegExs) {
-            lexer.putOperator(localVariablesRegEx, TokenType.LOCAL_VARIABLE);
-        }
-    }
-
     public interface TernaryOperatorWrapper<V> {
         String getSignOne();
         String getSignTwo();

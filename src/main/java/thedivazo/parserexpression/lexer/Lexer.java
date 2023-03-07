@@ -8,11 +8,12 @@ import thedivazo.parserexpression.exception.SyntaxException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Лексер, который подвергает код лексическому анализу, и по завершению выдает список токенов.
  * @author TheDiVaZo
- * @version 1.1
+ * @version 1.2
  *
  */
 @NoArgsConstructor
@@ -20,14 +21,14 @@ public class Lexer {
     /**
      * Хранит RegEx'ы и типы токенов, которые будут строиться по этим RegEx'ам.
      */
-    protected Map<String, TokenType> tokenTypeSet = new LinkedMap<>();
+    protected Map<String, TokenType> tokenTypeMap = new LinkedMap<>();
 
     /**
      * @param regEx regEx, по которому будет присваиваться тип токена
      * @param tokenType Тип токена
      */
     public void putOperator(String regEx, TokenType tokenType) {
-        tokenTypeSet.put(regEx, tokenType);
+        tokenTypeMap.put(regEx, tokenType);
     }
 
     /**
@@ -36,7 +37,7 @@ public class Lexer {
      * @return тип удаленного токена
      */
     public TokenType removeOperator(String sign) {
-       return tokenTypeSet.remove(sign);
+       return tokenTypeMap.remove(sign);
     }
 
 
@@ -50,21 +51,25 @@ public class Lexer {
         List<Token> result = new ArrayList<>();
         StringBuilder sliceCode = new StringBuilder(code);
         int position = 0;
+        TokenType requireNextToken = null;
         while(true) {
             if(sliceCode.isEmpty()) break;
-            String currentRegEx = null;
             String token = null;
             TokenType tokenType = null;
-            for (String regEx : tokenTypeSet.keySet()) {
-                Matcher matcher = Pattern.compile("^"+regEx).matcher(sliceCode);
-                if(matcher.find()) {
-                    if(!Objects.isNull(token)) throw new FanoConditionException(currentRegEx, regEx);
+            TokenType finalRequireNextToken = requireNextToken;
+            Set<Map.Entry<String,TokenType>> entryTokenMap = Objects.isNull(requireNextToken) ? tokenTypeMap.entrySet() : tokenTypeMap.entrySet().stream().filter(entry->entry.getValue().equals(finalRequireNextToken)).collect(Collectors.toSet());
+            for (Map.Entry<String,TokenType> entryToken : entryTokenMap) {
+                String regEx = entryToken.getKey();
+                Matcher matcher = Pattern.compile("^" + regEx).matcher(sliceCode);
+                if (matcher.find()) {
                     token = matcher.group();
-                    currentRegEx = regEx;
-                    tokenType = tokenTypeSet.getOrDefault(regEx, null);
+                    tokenType = entryToken.getValue();
                     break;
                 }
             }
+            Optional<TokenType> optionalTokenType = Optional.ofNullable(tokenType);
+            requireNextToken = optionalTokenType.isEmpty() ? null:optionalTokenType.get().requireNextToken();
+
             if(Objects.isNull(token) || Objects.isNull(tokenType)) {
                 token = sliceCode.substring(0,1);
                 throw new SyntaxException(String.format("Unknown token: %s",token), position, code);

@@ -10,10 +10,24 @@ public enum TokenType {
     COMPOUND_START,
     COMPOUND_END,
     SPACE,
-
     DELIMITER,
-
     METHOD,
+    METHOD_REFERENCE() {
+        @Override
+        public TokenType requireNextToken() {
+            return TokenType.METHOD;
+        }
+    },
+    START_VARIABLE_SYMBOL() {
+        @Override
+        public TokenType requireNextToken() {
+            return TokenType.CONDITION;
+        }
+    };
 
-    METHOD_REFERENCE, START_VARIABLE_SYMBOL, LOCAL_VARIABLE;
+
+
+    public TokenType requireNextToken(){
+        return null;
+    };
 }

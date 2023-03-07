@@ -18,8 +18,6 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -313,16 +311,14 @@ public class ParserExpressionTest {
         parserExpression.setCondition("PI", Math.PI);
         parserExpression.setCondition("E", Math.E);
 
-        parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign)); //todo: ERROR!
+        parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
 
         parserExpression.setAlternativeConditionParser(NumberUtils::createDouble);
-        //todo: ERROR!
         parserExpression.addDelimiter("\\,");
         parserExpression.addSkipSymbols(" +");
         parserExpression.addCompoundOperators("\\(","\\)");
 
         parserExpression.addVariableStartSymbols("\\$");
-        parserExpression.addLocalVariablesRegExs("[a-zA-Z_\\-0-9\\.]+");
     }
 
     @Test
@@ -430,6 +426,11 @@ public class ParserExpressionTest {
     @Test
     void objectTest() throws CompileException, InterpreterException {
 
+        enum LegType {
+            RIGHT,
+            LEFT
+        }
+
         @RequiredArgsConstructor
         @Getter
         class Human {
@@ -438,6 +439,89 @@ public class ParserExpressionTest {
             private final String sex;
         }
 
+        @RequiredArgsConstructor
+        @Getter
+        class Leg {
+            private final LegType legType;
+            private final int size;
+        }
+
+
+        class LegAndHuman extends Human {
+            @Getter
+            private final Leg leg;
+
+            public LegAndHuman(int age, String name, String sex, LegType legType, int size) {
+                super(age, name, sex);
+                leg = new Leg(legType, size);
+            }
+        }
+
+        @RequiredArgsConstructor
+        class WrapperLeg implements WrapperObject<Leg>, Constable {
+
+            private final Leg object;
+
+            @Getter
+            private final Set<WrapperMethod<?>> methods = new HashSet<>(){{
+                add(new WrapperMethod<String>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getLegType";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public String execute(Object... arguments) {
+                        return object.getLegType().name();
+                    }
+                });
+                add(new WrapperMethod<Integer>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getSize";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public Integer execute(Object... arguments) {
+                        return object.getSize();
+                    }
+                });
+            }};
+            @Override
+            public Leg getObject() {
+                return object;
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType) {
+                return !methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArgumentsType)).findAny().isEmpty();
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Collection<?> methodArguments) {
+                return hasMethod(nameMethod, methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]));
+            }
+
+            @Override
+            public Object executeMethod(String nameMethod, Collection<?> methodArguments) {
+                return methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]))).findAny().get().execute(methodArguments);
+            }
+
+            @Override
+            public Optional<? extends ConstantDesc> describeConstable() {
+                return Optional.empty();
+            }
+        }
         @RequiredArgsConstructor
         class WrapperHuman implements WrapperObject<Human>, Constable {
 
@@ -519,28 +603,134 @@ public class ParserExpressionTest {
                 return Optional.empty();
             }
         }
+        @RequiredArgsConstructor
+        class WrapperLegAndHuman implements WrapperObject<LegAndHuman>, Constable {
+
+            private final LegAndHuman object;
+
+            @Getter
+            private final Set<WrapperMethod<?>> methods = new HashSet<>(){{
+                add(new WrapperMethod<Integer>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getAge";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public Integer execute(Object... arguments) {
+                        return object.getAge();
+                    }
+                });
+                add(new WrapperMethod<String>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getName";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public String execute(Object... arguments) {
+                        return object.getName();
+                    }
+                });
+                add(new WrapperMethod<String>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getSex";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public String execute(Object... arguments) {
+                        return object.getSex();
+                    }
+                });
+
+                add(new WrapperMethod<WrapperLeg>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getLeg";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public WrapperLeg execute(Object... arguments) {
+                        return new WrapperLeg(object.getLeg());
+                    }
+                });
+            }};
+            @Override
+            public LegAndHuman getObject() {
+                return object;
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType) {
+                return !methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArgumentsType)).findAny().isEmpty();
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Collection<?> methodArguments) {
+                return hasMethod(nameMethod, methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]));
+            }
+
+            @Override
+            public Object executeMethod(String nameMethod, Collection<?> methodArguments) {
+                return methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]))).findAny().get().execute(methodArguments);
+            }
+
+            @Override
+            public Optional<? extends ConstantDesc> describeConstable() {
+                return Optional.empty();
+            }
+        }
 
         Human developer = new Human(19, "TheDiVaZo", "real man");
         Human adminVotiveRP = new Human(20, "lorendel", "cool man");
         Human feminist = new Human(-4, "Feminist Fat Big Life", "Attack Helicopter");
 
+        LegAndHuman legAndHuman = new LegAndHuman(20, "AshotBigLeg", "meat", LegType.LEFT, 200);
+
         WrapperHuman wrapperDeveloper = new WrapperHuman(developer);
         WrapperHuman wrapperAdminVotiveRP = new WrapperHuman(adminVotiveRP);
         WrapperHuman wrapperFeminist = new WrapperHuman(feminist);
+        WrapperLegAndHuman wrapperLegAndHuman = new WrapperLegAndHuman(legAndHuman);
 
         parserExpression.addMethodReferenceSymbols("#");
 
         Map<String, Constable> localVariables = new HashMap<>(){{
             put("developer", wrapperDeveloper);
+            put("legHuman", wrapperLegAndHuman);
         }};
         parserExpression.setFunction("getAdminVotiveRP", (string)->wrapperAdminVotiveRP);
         parserExpression.setCondition("@fiministka@", wrapperFeminist);
+        parserExpression.setCondition("[a-zA-Z\\.0-9]+");
 
         parserExpression.addObjects(new WrapperHuman(null));
+        parserExpression.addObjects(new WrapperLegAndHuman(null));
+        parserExpression.addObjects(new WrapperLeg(null));
 
         Serializable code1 = parserExpression.compile("'cool developer -> ' + $developer#getName() + ' ' + $developer#getAge() + ' ' + $developer#getSex()");
         Serializable code2 = parserExpression.compile("'cool admin votive rp -> ' + getAdminVotiveRP()#getName() + ' ' + getAdminVotiveRP()#getAge() + ' ' + getAdminVotiveRP()#getSex()");
         Serializable code3 = parserExpression.compile("'cool bad feminist -> ' + @fiministka@#getName() + ' ' + @fiministka@#getAge() + ' ' + @fiministka@#getSex()");
+        Serializable code4 = parserExpression.compile("'leg human -> ' + legHuman#getLeg()#getLegType() + ' ' + legHuman#getLeg()#getSize()");
 
         assertEquals("cool developer -> TheDiVaZo 19 real man", parserExpression.execute(code1, 1, localVariables));
         assertEquals("cool admin votive rp -> lorendel 20 cool man", parserExpression.execute(code2, 2, localVariables));
