@@ -4,19 +4,19 @@ import lombok.RequiredArgsConstructor;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.InterpreterException;
 import thedivazo.parserexpression.interpreter.Interpreter;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperMethod;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperObject;
 import thedivazo.parserexpression.lexer.Lexer;
 import thedivazo.parserexpression.lexer.TokenType;
 import thedivazo.parserexpression.parser.Node;
 import thedivazo.parserexpression.parser.OperatorType;
 import thedivazo.parserexpression.parser.Parser;
-import thedivazo.utils.TernaryOperator;
+import thedivazo.utils.TernFunction;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -27,31 +27,43 @@ import java.util.regex.Pattern;
  * @version 1.0
  */
 @RequiredArgsConstructor
-public class ParserExpression<T, R> {
+public class ParserExpression<T, R extends B, B> {
     private final Lexer lexer = new Lexer();
     private final Parser parser = new Parser();
-    private final Interpreter<T, R> interpreter = new Interpreter<>();
+    private final Interpreter<T, R, B> interpreter = new Interpreter<>();
+
+    public void addVariableStartSymbols(String... startVariableSymbols) {
+        for (String startVariableSymbol : startVariableSymbols) {
+            lexer.putOperator(startVariableSymbol, TokenType.START_VARIABLE_SYMBOL);
+        }
+    }
+
+    public void addLocalVariablesRegExs(String... localVariablesRegExs) {
+        for (String localVariablesRegEx : localVariablesRegExs) {
+            lexer.putOperator(localVariablesRegEx, TokenType.LOCAL_VARIABLE);
+        }
+    }
 
     public interface TernaryOperatorWrapper<V> {
         String getSignOne();
         String getSignTwo();
-        TernaryOperator<V> getTernaryOperator();
+        TernFunction<Boolean, V, V, V> getTernaryOperator();
     }
 
-    public interface BinaryOperatorWrapper<V> {
+    public interface BinaryOperatorWrapper<V, D> {
         String getSign();
-        BinaryOperator<V> getBinaryOperator();
+        BiFunction<V, V, D> getBinaryOperator();
     }
-    public interface UnaryOperatorWrapper<V> {
+    public interface UnaryOperatorWrapper<V, D> {
         String getSign();
-        UnaryOperator<V> getUnaryOperator();
+        Function<V, D> getUnaryOperator();
     }
 
     /**
      * На данный момент парсер не поддерживает добавление нескольких тернарных операторов с одинаковым приоритетом по отношению друг к другу.
      * @param operatorData объект, представляющий единственный тернарный оператор
      */
-    public void addTernaryOperator(TernaryOperatorWrapper<R> operatorData) {
+    public void addTernaryOperator(TernaryOperatorWrapper<B> operatorData) {
         parser.addOperator(new Parser.OperatorData(operatorData.getSignOne(), OperatorType.TERNARY_1), new Parser.OperatorData(operatorData.getSignTwo(), OperatorType.TERNARY_2));
         lexer.putOperator(Pattern.quote(operatorData.getSignOne()),TokenType.OPERATOR);
         lexer.putOperator(Pattern.quote(operatorData.getSignTwo()),TokenType.OPERATOR);
@@ -62,14 +74,14 @@ public class ParserExpression<T, R> {
      * @param operatorsData группа приоритетно-равных по отношению друг к другу бинарных операторов.
      */
     @SafeVarargs
-    public final void addBinaryOperator(BinaryOperatorWrapper<R>... operatorsData) {
+    public final void addBinaryOperator(BinaryOperatorWrapper<B, R>... operatorsData) {
         parser.addOperator(
                 Arrays
                         .stream(operatorsData)
                         .map(binaryOperatorWrapper -> new Parser.OperatorData(binaryOperatorWrapper.getSign(), OperatorType.BINARY))
                         .toList()
                         .toArray(new Parser.OperatorData[]{}));
-        for (BinaryOperatorWrapper<R> operatorData : operatorsData) {
+        for (BinaryOperatorWrapper<B, R> operatorData : operatorsData) {
             lexer.putOperator(Pattern.quote(operatorData.getSign()), TokenType.OPERATOR);
             interpreter.addBinaryOperator(operatorData.getSign(),operatorData.getBinaryOperator());
         }
@@ -80,14 +92,14 @@ public class ParserExpression<T, R> {
      * @param operatorsData группа приоритетно-равных по отношению друг к другу унарных операторов.
      */
     @SafeVarargs
-    public final void addUnaryOperator(UnaryOperatorWrapper<R>... operatorsData) {
+    public final void addUnaryOperator(UnaryOperatorWrapper<B, R>... operatorsData) {
         parser.addOperator(
                 Arrays
                         .stream(operatorsData)
                         .map(unaryOperatorWrapper -> new Parser.OperatorData(unaryOperatorWrapper.getSign(), OperatorType.UNARY))
                         .toList()
                         .toArray(new Parser.OperatorData[]{}));
-        for (UnaryOperatorWrapper<R> operatorData : operatorsData) {
+        for (UnaryOperatorWrapper<B, R> operatorData : operatorsData) {
             lexer.putOperator(Pattern.quote(operatorData.getSign()), TokenType.OPERATOR);
             interpreter.addUnaryOperator(operatorData.getSign(),operatorData.getUnaryOperator());
         }
@@ -98,14 +110,14 @@ public class ParserExpression<T, R> {
      */
     public void setCondition(String sign) {
         lexer.putOperator(sign, TokenType.CONDITION);
-        interpreter.addCondition(sign, null);
+        //interpreter.addCondition(sign, null);
     }
 
     /**
      * @param regEx regEx относительно которого будет производиться поиск условий (переменных) в выражении
      * @param condition функция, являющееся обработчиком условия, принимающая на вход {@link String} и возвращающая R ({@link ParserExpression})
      */
-    public void setCondition(String regEx, BiFunction<T,String,R> condition) {
+    public void setCondition(String regEx, BiFunction<T,String,B> condition) {
         lexer.putOperator(regEx, TokenType.CONDITION);
         interpreter.addCondition(regEx, condition);
     }
@@ -123,12 +135,20 @@ public class ParserExpression<T, R> {
      * Добавляет функцию вида "function(x)" в парсер
      * @param sign название функции
      * @param function тело функции
-     * @param argumentCompare обработчик аргументов.
      */
-    public void setFunction(String sign, Function<List<R>,R> function, Function<Integer, Boolean> argumentCompare) {
+    public void setFunction(String sign, Function<List<B>,R> function) {
         lexer.putOperator(sign, TokenType.FUNCTION);
-        parser.addNumberFunctionArgument(sign, argumentCompare);
+        //parser.addNumberFunctionArgument(sign, argumentCompare);
         interpreter.addFunctionOperator(sign, function);
+    }
+
+
+    public void addObjects(WrapperObject<?>... wrapperObjects) {
+        for (WrapperObject<?> wrapperObject : wrapperObjects) {
+            for (WrapperMethod<?> method : wrapperObject.getMethods()) {
+                lexer.putOperator(method.getMethodName(), TokenType.METHOD);
+            }
+        }
     }
 
     /**
@@ -159,6 +179,17 @@ public class ParserExpression<T, R> {
         }
     }
 
+
+    /**
+     * Добавляет символы, которые позволяют получить доступ к методу condition
+     * @param methodReferenceSymbols список символов.
+     */
+    public void addMethodReferenceSymbols(String... methodReferenceSymbols) {
+        for (String methodReferenceSymbol : methodReferenceSymbols) {
+            lexer.putOperator(methodReferenceSymbol, TokenType.METHOD_REFERENCE);
+        }
+    }
+
     /**
      * Альтернативный обработчик условий.
      * Если в выражении есть условие, у которого нет своего обработчика, то оно будет обработано данным обработчиком
@@ -176,7 +207,7 @@ public class ParserExpression<T, R> {
      * @throws CompileException исключение, генерируемое при возникновении ошибки компиляции
      * @throws InterpreterException исключение, генерируемое при возникновении ошибки выполнения
      */
-    public R execute(String code, T input, Map<String, R> localArguments) throws CompileException, InterpreterException {
+    public Object execute(String code, T input, Map<String, B> localArguments) throws CompileException, InterpreterException {
         return interpreter.execute(parser.parsing(lexer.analyze(code)),input, localArguments);
     }
 
@@ -187,7 +218,7 @@ public class ParserExpression<T, R> {
      * @return Возвращает значение R ({@link ParserExpression})
      * @throws InterpreterException исключение, генерируемое при возникновении ошибки выполнения
      */
-    public R execute(Serializable objectNode, T input, Map<String, R> localArguments) throws InterpreterException {
+    public B execute(Serializable objectNode, T input, Map<String, B> localArguments) throws InterpreterException {
         if(!(objectNode instanceof Node nodeMain)) throw new IllegalArgumentException("This object is not a code to be executed");
         return interpreter.execute(nodeMain ,input, localArguments);
     }
@@ -199,7 +230,7 @@ public class ParserExpression<T, R> {
      * @return {@link ParserExpression#execute(Serializable, Object, Map)}
      * @throws InterpreterException {@link ParserExpression#execute(Serializable, Object, Map)}
      */
-    public R execute(Serializable objectNode, T input) throws InterpreterException {
+    public B execute(Serializable objectNode, T input) throws InterpreterException {
         if(!(objectNode instanceof Node nodeMain)) throw new IllegalArgumentException("This object is not a code to be executed");
         return interpreter.execute(nodeMain, input);
     }
@@ -210,7 +241,7 @@ public class ParserExpression<T, R> {
      * @param input {@link ParserExpression#execute(String, Object, Map)}
      * @return {@link ParserExpression#execute(String, Object, Map)}
      */
-    public R execute(String code, T input) throws CompileException, InterpreterException {
+    public B execute(String code, T input) throws CompileException, InterpreterException {
         return interpreter.execute(parser.parsing(lexer.analyze(code)),input);
     }
 
@@ -219,7 +250,7 @@ public class ParserExpression<T, R> {
      * @param code {@link ParserExpression#execute(String, Object, Map)}
      * @return {@link ParserExpression#execute(String, Object, Map)}
      */
-    public R execute(String code) throws CompileException, InterpreterException {
+    public B execute(String code) throws CompileException, InterpreterException {
         return interpreter.execute(parser.parsing(lexer.analyze(code)),null);
     }
 
@@ -228,7 +259,7 @@ public class ParserExpression<T, R> {
      * @param objectNode {@link ParserExpression#execute(Serializable, Object)}
      * @return {@link ParserExpression#execute(Serializable, Object)}
      */
-    public R execute(Serializable objectNode) throws InterpreterException {
+    public B execute(Serializable objectNode) throws InterpreterException {
         if(!(objectNode instanceof Node nodeMain)) throw new IllegalArgumentException("This object is not a code to be executed");
         return interpreter.execute(nodeMain, null);
     }

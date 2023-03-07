@@ -1,28 +1,30 @@
 package thedivazo.parserexpression;
 
-import com.ibm.icu.impl.TimeZoneGenericNames;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.*;
 import org.junit.jupiter.api.Test;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.parserexpression.exception.InterpreterException;
-import thedivazo.utils.StringUtil;
-import thedivazo.utils.TernaryOperator;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperMethod;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperObject;
+import thedivazo.utils.TernFunction;
 
 import java.io.Serializable;
 import java.lang.constant.Constable;
+import java.lang.constant.ConstantDesc;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BinaryOperator;
-import java.util.function.UnaryOperator;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ParserExpressionTest {
-     static ParserExpression<Constable, Constable> parserExpression = new ParserExpression<>();
+public class ParserExpressionTest {
+     public static ParserExpression<Constable, Constable, Constable> parserExpression = new ParserExpression<>();
     static {
         parserExpression.setCondition("'.*?'", (input, string)->string.substring(1,string.length()-1));
 
@@ -36,7 +38,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public UnaryOperator<Constable> getUnaryOperator() {
+                    public Function<Constable, Constable> getUnaryOperator() {
                         return object -> {
                             if(NumberUtils.isCreatable(object.toString())) return -NumberUtils.createDouble(object.toString());
                             else return BooleanUtils.toBoolean(object.toString());
@@ -52,7 +54,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble * (Double) aDouble2;
                     }
                 },
@@ -63,7 +65,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(double)((int) ((Double) aDouble / (Double) aDouble2));
                     }
                 },
@@ -74,7 +76,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble / (Double) aDouble2;
                     }
                 },
@@ -85,7 +87,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble % (Double) aDouble2;
                     }
                 });
@@ -98,7 +100,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (object1, object2)->{
                             if(object1 instanceof Double double1 && object2 instanceof Double double2)
                                 return double1+double2;
@@ -115,7 +117,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) -> (Double) aDouble - (Double) aDouble2;
                     }
                 });
@@ -129,7 +131,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 <= (double) dob2;
                     }
                 },
@@ -140,7 +142,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 >= (double) dob2;
                     }
                 },
@@ -151,7 +153,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 < (double) dob2;
                     }
                 },
@@ -162,7 +164,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 > (double) dob2;
                     }
                 });
@@ -175,8 +177,8 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
-                        return Object::equals;
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
+                        return Constable::equals;
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
@@ -186,7 +188,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (obj1, obj2)->!obj1.equals(obj2);
                     }
                 });
@@ -201,7 +203,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public UnaryOperator<Constable> getUnaryOperator() {
+                    public Function<Constable, Constable> getUnaryOperator() {
                         return (anyObject)->{
                             if(anyObject instanceof Double doubleObject) return -doubleObject;
                             else return  !(boolean) (anyObject);
@@ -217,7 +219,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 && (boolean) bol2;
                     }
                 });
@@ -230,7 +232,7 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 || (boolean) bol2;
                     }
                 });
@@ -250,56 +252,58 @@ class ParserExpressionTest {
                     }
 
                     @Override
-                    public TernaryOperator<Constable> getTernaryOperator() {
-                        return (cond1, cond2, cond3) -> (boolean) cond1 ? cond2:cond3;
+                    public TernFunction<Boolean, Constable, Constable, Constable> getTernaryOperator() {
+                        return (cond1, cond2, cond3) -> cond1 ? cond2:cond3;
                     }
                 });
 
         //function
-        parserExpression.setFunction("cos", doubles -> Math.cos((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("sin", doubles -> Math.sin((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("tg", doubles -> Math.tan((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("cos", doubles -> Math.cos((double) doubles.get(0)));
+        parserExpression.setFunction("sin", doubles -> Math.sin((double) doubles.get(0)));
+        parserExpression.setFunction("tg", doubles -> Math.tan((double) doubles.get(0)));
+        parserExpression.setFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)));
 
-        parserExpression.setFunction("abs", doubles -> Math.abs((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("floor", doubles -> Math.floor((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("round", doubles -> Math.round((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("rint", doubles -> Math.rint((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)), count->count==2);
+        parserExpression.setFunction("abs", doubles -> Math.abs((double) doubles.get(0)));
+        parserExpression.setFunction("floor", doubles -> Math.floor((double) doubles.get(0)));
+        parserExpression.setFunction("round", doubles -> Math.round((double) doubles.get(0)));
+        parserExpression.setFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)));
+        parserExpression.setFunction("rint", doubles -> Math.rint((double) doubles.get(0)));
+        parserExpression.setFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)));
 
-        parserExpression.setFunction("ln", doubles -> Math.log((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("exp", doubles -> Math.exp((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)), count->count==2);
-        parserExpression.setFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)), count->count==2);
-        parserExpression.setFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("ln", doubles -> Math.log((double) doubles.get(0)));
+        parserExpression.setFunction("exp", doubles -> Math.exp((double) doubles.get(0)));
+        parserExpression.setFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)));
+        parserExpression.setFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)));
+        parserExpression.setFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)));
+        parserExpression.setFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)));
 
 
-        parserExpression.setFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0), count->count==2);
+        parserExpression.setFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0));
 
-        parserExpression.setFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(Double.class::cast).toArray()), count->count>=2);
-        parserExpression.setFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(Double.class::cast).toArray()), count->count>=2);
+        parserExpression.setFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(Double.class::cast).toArray()));
+        parserExpression.setFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(Double.class::cast).toArray()));
 
-        parserExpression.setFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("signum", doubles -> Math.signum((double) doubles.get(0)));
 
         parserExpression.setFunction("str", objects->{
-            Constable constable = objects.get(0);
+            Object constable = objects.get(0);
             if(constable instanceof Double double1) return BigDecimal.valueOf(double1).stripTrailingZeros().toPlainString();
             else return constable.toString();
-        }, count->count==1);
+        });
         parserExpression.setFunction("number", objects->{
-            Constable constable = objects.get(0);
+            Object constable = objects.get(0);
             if(NumberUtils.isCreatable(constable.toString())) return NumberUtils.createDouble(constable.toString());
             else if(constable instanceof Boolean boolean1) return (boolean1) ? 1 : 0;
             else return 0;
-        }, count->count==1);
+        });
         parserExpression.setFunction("boolean", objects->{
-            Constable constable = objects.get(0);
+            Object constable = objects.get(0);
             if(constable instanceof Boolean boolean1) return boolean1;
             else if(constable instanceof Double double1) return BooleanUtils.toBoolean((int) double1.doubleValue());
             else return BooleanUtils.toBoolean(constable.toString());
-        }, count->count==1);
+        });
+
+        parserExpression.setFunction("emptyFunction", (input)-> 20d);
 
 
         parserExpression.setCondition("true", true);
@@ -317,7 +321,8 @@ class ParserExpressionTest {
         parserExpression.addSkipSymbols(" +");
         parserExpression.addCompoundOperators("\\(","\\)");
 
-        parserExpression.setCondition("\\$[a-zA-Z_\\-0-9\\.]+");
+        parserExpression.addVariableStartSymbols("\\$");
+        parserExpression.addLocalVariablesRegExs("[a-zA-Z_\\-0-9\\.]+");
     }
 
     @Test
@@ -360,6 +365,7 @@ class ParserExpressionTest {
         Serializable code36 = parserExpression.compile("boolean('false')");
         Serializable code37 = parserExpression.compile("boolean(0)");
         Serializable code38 = parserExpression.compile("boolean('0')");
+        Serializable code39 = parserExpression.compile("emptyFunction()");
 
         assertEquals(2d, (double) parserExpression.execute(code1));
         assertEquals(0.9999999999999999d, (double) parserExpression.execute(code2));
@@ -399,17 +405,20 @@ class ParserExpressionTest {
         assertFalse((boolean)parserExpression.execute(code36));
         assertFalse((boolean)parserExpression.execute(code37));
         assertFalse((boolean)parserExpression.execute(code38));
+        assertEquals(20d, parserExpression.execute(code39));
     }
 
     @Test
     void variableTest() throws InterpreterException, CompileException {
+
         Map<String, Constable> variables = new HashMap<>();
-        variables.put("$variable.0.1", 5d);
-        variables.put("$variable.0.2", "5");
-        variables.put("$variable.0.3", true);
-        variables.put("$variable.0.4", parserExpression.execute("1+1"));
-        variables.put("$variable.0.5", false);
-        variables.put("$variable.0.6", parserExpression.execute("false"));
+        variables.put("variable.0.1", 5d);
+        variables.put("variable.0.2", "5");
+        variables.put("variable.0.3", true);
+        variables.put("variable.0.4", parserExpression.execute("1+1"));
+        variables.put("variable.0.5", false);
+        variables.put("variable.0.6", parserExpression.execute("false"));
+        
         assertEquals(5d,(double) parserExpression.execute("$variable.0.1", 0, variables));
         assertEquals("5",parserExpression.execute("$variable.0.2", 0, variables));
         assertTrue((boolean) parserExpression.execute("$variable.0.3", 0, variables));
@@ -417,4 +426,130 @@ class ParserExpressionTest {
         assertFalse((boolean) parserExpression.execute("$variable.0.5", 0, variables));
         assertFalse((boolean) parserExpression.execute("$variable.0.6", 0, variables));
     }
+
+    @Test
+    void objectTest() throws CompileException, InterpreterException {
+
+        @RequiredArgsConstructor
+        @Getter
+        class Human {
+            private final int age;
+            private final String name;
+            private final String sex;
+        }
+
+        @RequiredArgsConstructor
+        class WrapperHuman implements WrapperObject<Human>, Constable {
+
+            private final Human object;
+
+            @Getter
+            private final Set<WrapperMethod<?>> methods = new HashSet<>(){{
+                add(new WrapperMethod<Integer>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getAge";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public Integer execute(Object... arguments) {
+                        return object.getAge();
+                    }
+                });
+                add(new WrapperMethod<String>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getName";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public String execute(Object... arguments) {
+                        return object.getName();
+                    }
+                });
+                add(new WrapperMethod<String>() {
+                    @Override
+                    public String getMethodName() {
+                        return "getSex";
+                    }
+
+                    @Override
+                    public Class<Object>[] getArgumentTypes() {
+                        return new Class[0];
+                    }
+
+                    @Override
+                    public String execute(Object... arguments) {
+                        return object.getSex();
+                    }
+                });
+            }};
+            @Override
+            public Human getObject() {
+                return object;
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType) {
+                return !methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArgumentsType)).findAny().isEmpty();
+            }
+
+            @Override
+            public boolean hasMethod(String nameMethod, Collection<?> methodArguments) {
+                return hasMethod(nameMethod, methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]));
+            }
+
+            @Override
+            public Object executeMethod(String nameMethod, Collection<?> methodArguments) {
+                return methods.stream().filter(wrapperMethod -> wrapperMethod.getMethodName().equals(nameMethod) && Arrays.equals(wrapperMethod.getArgumentTypes(), methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]))).findAny().get().execute(methodArguments);
+            }
+
+            @Override
+            public Optional<? extends ConstantDesc> describeConstable() {
+                return Optional.empty();
+            }
+        }
+
+        Human developer = new Human(19, "TheDiVaZo", "real man");
+        Human adminVotiveRP = new Human(20, "lorendel", "cool man");
+        Human feminist = new Human(-4, "Feminist Fat Big Life", "Attack Helicopter");
+
+        WrapperHuman wrapperDeveloper = new WrapperHuman(developer);
+        WrapperHuman wrapperAdminVotiveRP = new WrapperHuman(adminVotiveRP);
+        WrapperHuman wrapperFeminist = new WrapperHuman(feminist);
+
+        parserExpression.addMethodReferenceSymbols("#");
+
+        Map<String, Constable> localVariables = new HashMap<>(){{
+            put("developer", wrapperDeveloper);
+        }};
+        parserExpression.setFunction("getAdminVotiveRP", (string)->wrapperAdminVotiveRP);
+        parserExpression.setCondition("@fiministka@", wrapperFeminist);
+
+        parserExpression.addObjects(new WrapperHuman(null));
+
+        Serializable code1 = parserExpression.compile("'cool developer -> ' + $developer#getName() + ' ' + $developer#getAge() + ' ' + $developer#getSex()");
+        Serializable code2 = parserExpression.compile("'cool admin votive rp -> ' + getAdminVotiveRP()#getName() + ' ' + getAdminVotiveRP()#getAge() + ' ' + getAdminVotiveRP()#getSex()");
+        Serializable code3 = parserExpression.compile("'cool bad feminist -> ' + @fiministka@#getName() + ' ' + @fiministka@#getAge() + ' ' + @fiministka@#getSex()");
+
+        assertEquals("cool developer -> TheDiVaZo 19 real man", parserExpression.execute(code1, 1, localVariables));
+        assertEquals("cool admin votive rp -> lorendel 20 cool man", parserExpression.execute(code2, 2, localVariables));
+        assertEquals("cool bad feminist -> Feminist Fat Big Life -4 Attack Helicopter", parserExpression.execute(code3, 3, localVariables));
+
+
+
+
+    }
+    
+    
 }

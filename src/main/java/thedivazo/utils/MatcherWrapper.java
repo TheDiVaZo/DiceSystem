@@ -1,6 +1,5 @@
 package thedivazo.utils;
 
-import javax.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +15,7 @@ public class MatcherWrapper {
         this.pattern = pattern;
     }
 
-    @Nullable
+
     public String matchOne(CharSequence input) {
         Matcher matcher = pattern.matcher(input);
         if(matcher.find()) return matcher.group();

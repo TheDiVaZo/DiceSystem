@@ -6,6 +6,6 @@ variables: #variables that you would like to save for future use are specified h
 dice_types: #Throw types. The player can roll both defense and attack.
   defend:
     dice: "rest_1 >= 50 ? rest_1:0" #Variables from the "restrictions" section are specified here. It is also possible to insert arbitrary code. But the code should only return a numeric value
-    text: "&7Вы кинули дайс на защиту. Вам выпало: &c{dice}" #This is just text. To insert a value from dice, just write {dice} in the text
+    text: "&7Вы кинули дайс на защиту. Вам выпало: &c{$dice}" #This is just text. To insert a value from dice, just write {dice} in the text
     permission: "dicesystem.defend"
 

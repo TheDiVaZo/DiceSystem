@@ -34,14 +34,10 @@ public class ConfigManager {
 
 
     protected Map<String, String> variables = new HashMap<>();
-    protected Map<String, String> conditions = new HashMap<>();
     protected Map<String, DiceType> diceTypes = new HashMap<>();
 
 
     public Map<String, String> getVariables() { return Collections.unmodifiableMap(variables); }
-    public Map<String, String> getConditions() {
-        return Collections.unmodifiableMap(conditions);
-    }
     public Map<String, DiceType> getDiceTypes() {
         return Collections.unmodifiableMap(diceTypes);
     }
@@ -153,20 +149,26 @@ public class ConfigManager {
         }
 
     public void updateVariables() {
+        Logger.debug("Update variable starting...");
         ConfigurationSection variablesSection = fileConfig.getConfigurationSection("variables");
         if(Objects.isNull(variablesSection)) return;
         for (String key : variablesSection.getKeys(true)) {
-            if(variablesSection.isString(key)) variables.put(key, variablesSection.getString(key));
+            if(variablesSection.isString(key)) {
+                variables.put(key, variablesSection.getString(key));
+                Logger.debug("variable \"{0}\" has been read (text: {1})", key, variablesSection.getString(key));
+            }
         }
     }
     public void updateDiceTypes() {
         diceTypes.clear();
+        Logger.debug("Update dice starting...");
         ConfigurationSection configurationSection = fileConfig.getConfigurationSection("dice_types");
         assert configurationSection != null;
         for (String key : configurationSection.getKeys(false)) {
             ConfigurationSection diceTypeSection = configurationSection.getConfigurationSection(key);
             assert diceTypeSection != null;
             diceTypes.put(key,new DiceType(key, diceTypeSection.getString("dice"), diceTypeSection.getString("text"), diceTypeSection.getString("permission")));
+            Logger.debug("Dice type \"{0}\" has been read", key);
         }
     }
 

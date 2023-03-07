@@ -4,26 +4,26 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import thedivazo.parserexpression.exception.InterpreterException;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperMethod;
+import thedivazo.parserexpression.interpreter.wrapper.WrapperObject;
 import thedivazo.parserexpression.parser.AST.*;
 import thedivazo.parserexpression.parser.Node;
-import thedivazo.utils.TernaryOperator;
+import thedivazo.utils.TernFunction;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 
 /**
  * Класс, который исполняет команды узлов (AST)
  * @param <T> the type that the condition works with.
- * @param <R> the type that returns the condition.
+ * @param <R> the type that the true argument
+ * @param <B> the type that returns the condition.
  * @author TheDiVaZo
- * @version 2.0
+ * @version 2.1
  */
-public class Interpreter<T, R> {
+public class Interpreter<T, R extends B, B> {
 
     @RequiredArgsConstructor
     class ConditionName {
@@ -32,7 +32,7 @@ public class Interpreter<T, R> {
         private final String regEx;
 
         @Getter
-        private final BiFunction<T,String,R> condition;
+        private final BiFunction<T,String,B> condition;
 
     }
 
@@ -42,35 +42,35 @@ public class Interpreter<T, R> {
     @Setter
     protected Function<String, R> alternativeConditionParser;
 
-    protected Map<String, TernaryOperator<R>> listTernaryOperators = new HashMap<>();
+    protected Map<String, TernFunction<Boolean,B,B,B>> listTernaryOperators = new HashMap<>();
 
-    protected Map<String, BinaryOperator<R>> listBinaryOperators = new HashMap<>();
+    protected Map<String, BiFunction<B, B, R>> listBinaryOperators = new HashMap<>();
 
-    protected Map<String, UnaryOperator<R>> listUnaryOperators = new HashMap<>();
+    protected Map<String, Function<B, R>> listUnaryOperators = new HashMap<>();
 
-    protected Map<String, Function<List<R>,R>> listFunctionOperators = new HashMap<>();
+    protected Map<String, Function<List<B>,R>> listFunctionOperators = new HashMap<>();
 
-    public void addTernaryOperator(String sign1, String sign2, TernaryOperator<R> ternaryOperator) {
+    public void addTernaryOperator(String sign1, String sign2, TernFunction<Boolean, B,B,B> ternaryOperator) {
         listTernaryOperators.put(sign1+sign2, ternaryOperator);
     }
 
-    public void addUnaryOperator(String sign, UnaryOperator<R> unaryOperator) {
+    public void addUnaryOperator(String sign, Function<B, R> unaryOperator) {
         listUnaryOperators.put(sign, unaryOperator);
     }
 
-    public void addBinaryOperator(String sign, BinaryOperator<R> binaryOperator) {
+    public void addBinaryOperator(String sign, BiFunction<B,B,R> binaryOperator) {
         listBinaryOperators.put(sign, binaryOperator);
     }
 
-    public void addFunctionOperator(String sign, Function<List<R>,R> functionOperator) {
+    public void addFunctionOperator(String sign, Function<List<B>,R> functionOperator) {
         listFunctionOperators.put(sign, functionOperator);
     }
 
-    public void addCondition(String regEx, BiFunction<T,String,R> condition) {
+    public void addCondition(String regEx, BiFunction<T,String,B> condition) {
         listConditionNames.add(new ConditionName(regEx, condition));
     }
 
-    public R execute(Node mainNode, T input) throws InterpreterException {
+    public B execute(Node mainNode, T input) throws InterpreterException {
         return execute(mainNode, input, null);
     }
 
@@ -82,14 +82,10 @@ public class Interpreter<T, R> {
      * @return Возвращает результат работы.
      * @throws InterpreterException выбрасывается, если в AST дереве присутствуют ошибки.
      */
-    public R execute(Node mainNode , T input,@Nullable Map<String, R> localConditions) throws InterpreterException {
-        if(mainNode instanceof FunctionOperatorNode functionOperatorNode) {
-            List<Node> childrenNode = mainNode.getChildrenNodes();
-            return listFunctionOperators.get(functionOperatorNode.getNodeName()).apply(childrenNode.stream().map(node -> executeNoException(node, input, localConditions)).toList());
-        }
-        else if(mainNode instanceof TernaryOperatorNode ternaryOperatorNode) {
+    public B execute(Node mainNode , T input, Map<String, B> localConditions) throws InterpreterException {
+        if(mainNode instanceof TernaryOperatorNode ternaryOperatorNode) {
             List<Node> childrenNode = mainNode.getChildrenNodes().stream().toList();
-            return listTernaryOperators.get(ternaryOperatorNode.getNodeName()).apply(execute(childrenNode.get(0), input, localConditions), execute(childrenNode.get(1), input, localConditions), execute(childrenNode.get(2), input,localConditions));
+            return listTernaryOperators.get(ternaryOperatorNode.getNodeName()).apply((Boolean) execute(childrenNode.get(0), input, localConditions), execute(childrenNode.get(1), input, localConditions), execute(childrenNode.get(2), input,localConditions));
         }
         else if(mainNode instanceof BinaryOperatorNode binaryOperatorNode) {
             List<Node> childrenNode = mainNode.getChildrenNodes().stream().toList();
@@ -109,15 +105,27 @@ public class Interpreter<T, R> {
             else if(Objects.isNull(alternativeConditionParser)) throw new InterpreterException(String.format("Unknown condition: %s", mainNode.getNodeName()));
             else return alternativeConditionParser.apply(conditionNode.getNodeName());
         }
+        else if(mainNode instanceof MethodOperatorNode methodOperatorNode) {
+            B context = execute(methodOperatorNode.getContext(), input, localConditions);
+            List<B> arguments = executeList(methodOperatorNode.getChildrenNodes(), input, localConditions);
+            if(context instanceof WrapperObject<?> wrapperObject) {
+                Object value = wrapperObject.executeMethod(methodOperatorNode.getNodeName(), arguments);
+                return (B) value;
+            }
+            else throw new InterpreterException(String.format("Condition \"%s\" not be Object.", methodOperatorNode.getContext().getNodeName()));
+        }
+        else if(mainNode instanceof FunctionOperatorNode functionOperatorNode) {
+            return listFunctionOperators.get(functionOperatorNode.getNodeName()).apply(executeList(mainNode.getChildrenNodes(), input, localConditions));
+        }
         else throw new InterpreterException(String.format("Unknown node: %s", mainNode));
     }
-
-    protected R executeNoException(Node mainNode , T input, Map<String, R> localConditions) {
-        try {
-            return execute(mainNode, input, localConditions);
-        } catch (InterpreterException e) {
-            throw new IllegalArgumentException(e);
+    
+    protected List<B> executeList(List<Node> nodeList, T input, Map<String, B> localConditions) throws InterpreterException {
+        List<B> objectList = new ArrayList<>(nodeList.size());
+        for (Node node : nodeList) {
+            objectList.add(execute(node, input, localConditions));
         }
+        return objectList;
     }
 
 }

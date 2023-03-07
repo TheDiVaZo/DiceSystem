@@ -5,6 +5,7 @@ import api.logging.handlers.JULHandler;
 import co.aikar.commands.PaperCommandManager;
 import lombok.Getter;
 import lombok.Setter;
+import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
@@ -12,16 +13,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.annotation.plugin.*;
 import org.bukkit.plugin.java.annotation.plugin.author.Author;
+import thedivazo.command.DefaultCommand;
 import thedivazo.config.ConfigManager;
 import thedivazo.dice.DiceManager;
 import thedivazo.metrics.MetricsManager;
 import thedivazo.parserexpression.ParserExpression;
 import thedivazo.parserexpression.exception.CompileException;
+import thedivazo.utils.TernFunction;
 import thedivazo.utils.TernaryOperator;
 
 import java.lang.constant.Constable;
 import java.math.BigDecimal;
+import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,14 +46,17 @@ import java.util.regex.Pattern;
 @ApiVersion(value = ApiVersion.Target.v1_13)
 public class DiceSystem extends JavaPlugin {
     @Getter
-    private final DiceManager diceManager = new DiceManager();
+    private final DiceManager<Player> diceManager = new DiceManager<>();
 
     @Getter
     @Setter
-    private ParserExpression<Player, Constable> parserExpression;
+    private ParserExpression<Player, Constable, Object> parserExpression;
 
-    private final PaperCommandManager manager = new PaperCommandManager(this);
+    private PaperCommandManager commandManager;
     private static ConfigManager configManager;
+
+    public DiceSystem() throws CompileException {
+    }
 
     public static ConfigManager getConfigManager() {
         return DiceSystem.configManager;
@@ -77,7 +86,9 @@ public class DiceSystem extends JavaPlugin {
 
     }
     public void registerCommands() {
-        manager.setDefaultExceptionHandler((command, registeredCommand, sender, args, t)-> {
+        commandManager = new PaperCommandManager(this);
+        commandManager.registerCommand(new DefaultCommand());
+        commandManager.setDefaultExceptionHandler((command, registeredCommand, sender, args, t)-> {
             getLogger().warning("Error occurred while executing command "+command.getName());
             return true;
         });
@@ -89,7 +100,12 @@ public class DiceSystem extends JavaPlugin {
         getConfigManager().reloadConfigFile();
         registerEvents();
         registerCommands();
-        getDiceManager().reload(getConfigManager());
+        getDiceManager().reload(getConfigManager(), getParserExpression());
+        reloadDiceSystem();
+    }
+
+    public void reloadDiceSystem() throws CompileException {
+        diceManager.reload(getConfigManager(), getParserExpression());
     }
 
     private void checkPluginVersion() {
@@ -119,7 +135,7 @@ public class DiceSystem extends JavaPlugin {
         //String type variable
         parserExpression.setCondition("'.+?'", (input, string)->string.substring(1,string.length()-1));
 
-        //arithmetic operators
+//arithmetic operators
         // unary "-"
         parserExpression.addUnaryOperator(
                 new ParserExpression.UnaryOperatorWrapper<>() {
@@ -129,7 +145,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public UnaryOperator<Constable> getUnaryOperator() {
+                    public Function<Object, Constable> getUnaryOperator() {
                         return object -> {
                             if(NumberUtils.isCreatable(object.toString())) return -NumberUtils.createDouble(object.toString());
                             else return BooleanUtils.toBoolean(object.toString());
@@ -145,7 +161,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble * (Double) aDouble2;
                     }
                 },
@@ -156,7 +172,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(double)((int) ((Double) aDouble / (Double) aDouble2));
                     }
                 },
@@ -167,7 +183,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble / (Double) aDouble2;
                     }
                 },
@@ -178,7 +194,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble % (Double) aDouble2;
                     }
                 });
@@ -191,12 +207,12 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (object1, object2)->{
                             if(object1 instanceof Double double1 && object2 instanceof Double double2)
                                 return double1+double2;
-                            else if(object1 instanceof Double double1) return BigDecimal.valueOf(double1).stripTrailingZeros().toPlainString() + object2.toString();
-                            else if(object2 instanceof Double double2) return object1.toString() + BigDecimal.valueOf(double2).stripTrailingZeros().toPlainString();
+                            else if(object1 instanceof Double double1) return new BigDecimal(double1).stripTrailingZeros().toPlainString() + object2.toString();
+                            else if(object2 instanceof Double double2) return object1.toString() + new BigDecimal(double2).stripTrailingZeros().toPlainString();
                             else return object1.toString()+object2.toString();
                         };
                     }
@@ -208,7 +224,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) -> (Double) aDouble - (Double) aDouble2;
                     }
                 });
@@ -222,7 +238,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 <= (double) dob2;
                     }
                 },
@@ -233,7 +249,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 >= (double) dob2;
                     }
                 },
@@ -244,7 +260,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 < (double) dob2;
                     }
                 },
@@ -255,7 +271,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 > (double) dob2;
                     }
                 });
@@ -268,7 +284,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return Object::equals;
                     }
                 },
@@ -279,7 +295,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (obj1, obj2)->!obj1.equals(obj2);
                     }
                 });
@@ -294,7 +310,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public UnaryOperator<Constable> getUnaryOperator() {
+                    public Function<Object, Constable> getUnaryOperator() {
                         return (anyObject)->{
                             if(anyObject instanceof Double doubleObject) return -doubleObject;
                             else return  !(boolean) (anyObject);
@@ -310,7 +326,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 && (boolean) bol2;
                     }
                 });
@@ -323,7 +339,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BinaryOperator<Constable> getBinaryOperator() {
+                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 || (boolean) bol2;
                     }
                 });
@@ -343,60 +359,57 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public TernaryOperator<Constable> getTernaryOperator() {
-                        return (cond1, cond2, cond3) -> (boolean) cond1 ? cond2:cond3;
+                    public TernFunction<Boolean, Object, Object, Object> getTernaryOperator() {
+                        return (cond1, cond2, cond3) -> cond1 ? cond2:cond3;
                     }
                 });
 
-        parserExpression.addDelimiter("\\,");
-        parserExpression.addSkipSymbols(" +");
-        parserExpression.addCompoundOperators("\\(","\\)");
-
         //function
-        parserExpression.setFunction("cos", doubles -> Math.cos((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("sin", doubles -> Math.sin((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("tg", doubles -> Math.tan((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("cos", doubles -> Math.cos((double) doubles.get(0)));
+        parserExpression.setFunction("sin", doubles -> Math.sin((double) doubles.get(0)));
+        parserExpression.setFunction("tg", doubles -> Math.tan((double) doubles.get(0)));
+        parserExpression.setFunction("ctg", doubles -> 1/Math.tan((double) doubles.get(0)));
 
-        parserExpression.setFunction("abs", doubles -> Math.abs((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("floor", doubles -> Math.floor((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("round", doubles -> Math.round((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("rint", doubles -> Math.rint((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)), count->count==2);
+        parserExpression.setFunction("abs", doubles -> Math.abs((double) doubles.get(0)));
+        parserExpression.setFunction("floor", doubles -> Math.floor((double) doubles.get(0)));
+        parserExpression.setFunction("round", doubles -> Math.round((double) doubles.get(0)));
+        parserExpression.setFunction("ceil", doubles -> Math.ceil((double) doubles.get(0)));
+        parserExpression.setFunction("rint", doubles -> Math.rint((double) doubles.get(0)));
+        parserExpression.setFunction("copySign", doubles -> Math.copySign((double) doubles.get(0), (double) doubles.get(1)));
 
-        parserExpression.setFunction("ln", doubles -> Math.log((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("exp", doubles -> Math.exp((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)), count->count==2);
-        parserExpression.setFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)), count->count==2);
-        parserExpression.setFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)), count->count==1);
-        parserExpression.setFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("ln", doubles -> Math.log((double) doubles.get(0)));
+        parserExpression.setFunction("exp", doubles -> Math.exp((double) doubles.get(0)));
+        parserExpression.setFunction("log", doubles -> Math.log((double) doubles.get(1))/Math.log((double) doubles.get(0)));
+        parserExpression.setFunction("pow", doubles -> Math.pow((double) doubles.get(0),(double) doubles.get(1)));
+        parserExpression.setFunction("sqrt", doubles -> Math.sqrt((double) doubles.get(0)));
+        parserExpression.setFunction("cbrt", doubles -> Math.cbrt((double) doubles.get(0)));
 
-        
-        parserExpression.setFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0), count->count==2);
-        
-        parserExpression.setFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
-        parserExpression.setFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(double.class::cast).toArray()), count->count>=2);
 
-        parserExpression.setFunction("signum", doubles -> Math.signum((double) doubles.get(0)), count->count==1);
+        parserExpression.setFunction("random", doubles -> Math.random()*((double) doubles.get(1)-(double) doubles.get(0))+(double) doubles.get(0));
 
-        parserExpression.setFunction("str", doubles->{
-            Constable constable = doubles.get(0);
+        parserExpression.setFunction("max", doubles -> NumberUtils.max(doubles.stream().mapToDouble(Double.class::cast).toArray()));
+        parserExpression.setFunction("min", doubles -> NumberUtils.min(doubles.stream().mapToDouble(Double.class::cast).toArray()));
+
+        parserExpression.setFunction("signum", doubles -> Math.signum((double) doubles.get(0)));
+
+        parserExpression.setFunction("str", objects->{
+            Object constable = objects.get(0);
             if(constable instanceof Double double1) return BigDecimal.valueOf(double1).stripTrailingZeros().toPlainString();
             else return constable.toString();
-        }, count->count==1);
-        parserExpression.setFunction("number", doubles->{
-            Constable constable = doubles.get(0);
+        });
+        parserExpression.setFunction("number", objects->{
+            Object constable = objects.get(0);
             if(NumberUtils.isCreatable(constable.toString())) return NumberUtils.createDouble(constable.toString());
             else if(constable instanceof Boolean boolean1) return (boolean1) ? 1 : 0;
-            else return null;
-        }, count->count==1);
+            else return 0;
+        });
         parserExpression.setFunction("boolean", objects->{
-            Constable constable = objects.get(0);
+            Object constable = objects.get(0);
             if(constable instanceof Boolean boolean1) return boolean1;
             else if(constable instanceof Double double1) return BooleanUtils.toBoolean((int) double1.doubleValue());
             else return BooleanUtils.toBoolean(constable.toString());
-        }, count->count==1);
+        });
+
 
         //Condition and constant
         parserExpression.setCondition("PI", Math.PI);
@@ -404,8 +417,6 @@ public class DiceSystem extends JavaPlugin {
         parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
         parserExpression.setCondition("true", true);
         parserExpression.setCondition("false", false);
-
-        parserExpression.setCondition("\\$[a-zA-Z_\\-0-9\\.]+");
 
         parserExpression.setAlternativeConditionParser(Double::parseDouble);
     }

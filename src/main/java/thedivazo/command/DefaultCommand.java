@@ -1,8 +1,10 @@
 package thedivazo.command;
 
+import api.logging.Logger;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import thedivazo.DiceSystem;
@@ -24,8 +26,15 @@ public class DefaultCommand extends BaseCommand {
     @Default
     @Description("Кидать ролл")
     @CommandCompletion("@diceList")
-    public static void onDice(Player player, String diceList) throws InterpreterException, CompileException {
-         Dice dice = DiceSystem.getInstance().getDiceManager().getDice(diceList);
-         player.sendMessage(dice.diceText(player, null));
+    public static void onDice(Player player, String diceName) throws InterpreterException, CompileException {
+        try {
+            String dice = DiceSystem.getInstance().getDiceManager().throwDice(diceName, player);
+            player.sendMessage(dice);
+        }
+        catch (Exception e) {
+            Logger.error(e.getMessage());
+            player.sendMessage(e.getMessage());
+            throw e;
+        }
     }
 }

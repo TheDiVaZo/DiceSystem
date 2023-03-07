@@ -41,8 +41,12 @@ class ParserTest {
         lexer.putOperator(" +", TokenType.SPACE);
         lexer.putOperator("\\(", TokenType.COMPOUND_START);
         lexer.putOperator("\\)", TokenType.COMPOUND_END);
-        String code = "-2+6*2-4/(-2)"; // =12
+        lexer.putOperator("\\.", TokenType.METHOD_REFERENCE);
+        lexer.putOperator("get", TokenType.METHOD);
+        lexer.putOperator("go", TokenType.METHOD);
+        String code = "-2+6*2-4/(-2).get(1).go()"; // =12
         List<Token> tokenList = lexer.analyze(code);
+        System.out.println(Arrays.toString(tokenList.toArray()));
         Parser parser = new Parser();
         parser.addOperator(new Parser.OperatorData("-", OperatorType.UNARY));
         parser.addOperator(new Parser.OperatorData("*", OperatorType.BINARY),new Parser.OperatorData("/", OperatorType.BINARY));

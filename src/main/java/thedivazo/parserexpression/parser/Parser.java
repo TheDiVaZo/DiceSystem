@@ -1,11 +1,8 @@
 package thedivazo.parserexpression.parser;
 
-import com.mojang.datafixers.types.Func;
-import com.oracle.truffle.js.nodes.access.LocalVarIncNode;
 import lombok.*;
 import org.apache.commons.collections4.list.SetUniqueList;
 import thedivazo.parserexpression.exception.CompileException;
-import thedivazo.parserexpression.exception.ConditionException;
 import thedivazo.parserexpression.exception.SyntaxException;
 import thedivazo.parserexpression.lexer.Lexer;
 import thedivazo.parserexpression.lexer.Token;
@@ -13,15 +10,12 @@ import thedivazo.parserexpression.lexer.TokenType;
 import thedivazo.parserexpression.parser.AST.*;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 /**
  * Данный класс предназначен для парсинга списка токенов ({@link Lexer}) в дерево узлов (AST).
  *
  * @author TheDiVaZo
- * @version 2.0
+ * @version 2.1
  */
 @RequiredArgsConstructor
 public class Parser {
@@ -31,9 +25,10 @@ public class Parser {
          BINARY_OPERATOR: OPERATOR_-1 "operand" BINARY_OPERATOR
          UNARY_OPERATOR: "operand"? OPERATOR_-1
          FUNCTION: "function_name"\((expr)?(,expr)*\)
+         METHOD: CONDITION"method_reference""method_name"\((expr)?(,expr)*\)
 
-
-         CONDITION: [a-zA-Z0-9\:]+ |  (EXPRESS)
+         NUMBERS: [0-9]+(\\.[0-9]+)?
+         CONDITION: [a-zA-Z0-9]+ |  (EXPRESS)
      */
 
     @AllArgsConstructor
@@ -52,9 +47,6 @@ public class Parser {
 
     private final List<Set<OperatorData>> listOfPriorityOperator = SetUniqueList.setUniqueList(new ArrayList<>());
 
-    private final Map<String, Function<Integer, Boolean>> functionAndNumberArgument = new HashMap<>();
-
-
     /**
      * Метод, позволяющий добавить токен(ы) оператора(ов) в список приоритета.
      * Чем позже был добавлен оператор(ы) в список, тем более он(и) приоритетен(ны).
@@ -67,11 +59,6 @@ public class Parser {
             operatorDataSet.add(operatorData);
         }
         return listOfPriorityOperator.add(operatorDataSet);
-    }
-
-
-    public void addNumberFunctionArgument(String functionSign, Function<Integer, Boolean> argumentCompare) {
-        functionAndNumberArgument.put(functionSign, argumentCompare);
     }
 
     /**
@@ -145,7 +132,7 @@ public class Parser {
     }
 
     public Node operator(TokenBuffer tokenBuffer,int indexPriority) throws CompileException {
-        if(indexPriority < 0) return factor(tokenBuffer);
+        if(indexPriority < 0) return method(tokenBuffer);
         Set<OperatorData> operatorsData = getOperatorForIndex(indexPriority);
         if(operatorsData.size() == 2) {
             List<OperatorData> operatorDataList = operatorsData.stream().toList();
@@ -174,6 +161,12 @@ public class Parser {
                 return new ConditionNode(currentToken.getSign());
             }
 
+            case START_VARIABLE_SYMBOL -> {
+                Token variableToken = tokenBuffer.next();
+                if(variableToken.lexemeType() != TokenType.LOCAL_VARIABLE) throw new SyntaxException("Local argument expected", variableToken.getPosition(), tokenBuffer.tokensToCode());
+                return new ConditionNode(variableToken.getSign());
+            }
+
             case COMPOUND_START -> {
                 Node compoundNode = expr(tokenBuffer);
                 Token nextToken = tokenBuffer.next();
@@ -187,26 +180,65 @@ public class Parser {
 
     public Node function(TokenBuffer tokenBuffer) throws CompileException {
         Token currentToken = tokenBuffer.next();
-        if(!currentToken.lexemeType().equals(TokenType.FUNCTION)) return factor(tokenBuffer);
+        if(!currentToken.lexemeType().equals(TokenType.FUNCTION)) return method(tokenBuffer);
         if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_START)) throw new SyntaxException("Compound start expected", currentToken.getPosition(), tokenBuffer.tokensToCode());
+
         List<Node> expressionList = new ArrayList<>();
-        while (tokenBuffer.hasNext()) {
-            Node expression = expr(tokenBuffer);
-            expressionList.add(expression);
-            if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
-                tokenBuffer.next();
-                break;
-            };
-            if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
-                tokenBuffer.next();
-                continue;
+        if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_END)) {
+            tokenBuffer.prev();
+            while (tokenBuffer.hasNext()) {
+                Node expression = expr(tokenBuffer);
+                expressionList.add(expression);
+                if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
+                    tokenBuffer.next();
+                    break;
+                };
+                if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
+                    tokenBuffer.next();
+                    continue;
+                }
+                else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
             }
-            else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
         }
-        if(!functionAndNumberArgument.get(currentToken.getSign()).apply(expressionList.size())) throw new SyntaxException(String.format("The function does not take %s arguments. Please see the documentation for how many arguments the function takes.",expressionList.size()),currentToken.getPosition(),tokenBuffer.tokensToCode());
         FunctionOperatorNode functionOperatorNode = new FunctionOperatorNode(currentToken.getSign());
         functionOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
         return functionOperatorNode;
+    }
+
+    public Node method(TokenBuffer tokenBuffer) throws CompileException {
+        Node conditionNode = factor(tokenBuffer);
+        while (tokenBuffer.hasNext()) {
+            Token token = tokenBuffer.next();
+            if (token.lexemeType() != TokenType.METHOD_REFERENCE) {
+                tokenBuffer.prev();
+                return conditionNode;
+            }
+            Token methodToken = tokenBuffer.next();
+            if(methodToken.lexemeType() != TokenType.METHOD) throw new SyntaxException("The \""+methodToken.getSign()+"\" operator must be followed by a method", methodToken.getPosition(),tokenBuffer.tokensToCode());
+            if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_START)) throw new SyntaxException("Compound start expected", tokenBuffer.current().getPosition(), tokenBuffer.tokensToCode());
+            List<Node> expressionList = new ArrayList<>();
+            if(!tokenBuffer.next().lexemeType().equals(TokenType.COMPOUND_END)) {
+                tokenBuffer.prev();
+                while (tokenBuffer.hasNext()) {
+                    Node expression = expr(tokenBuffer);
+                    expressionList.add(expression);
+                    if(tokenBuffer.current().lexemeType().equals(TokenType.COMPOUND_END)) {
+                        tokenBuffer.next();
+                        break;
+                    };
+                    if(tokenBuffer.current().lexemeType().equals(TokenType.DELIMITER)) {
+                        tokenBuffer.next();
+                        continue;
+                    }
+                    else throw new SyntaxException("Compound end expected", tokenBuffer.current().getPosition(),tokenBuffer.tokensToCode());
+                }
+            }
+            MethodOperatorNode methodOperatorNode = new MethodOperatorNode(methodToken.getSign());
+            methodOperatorNode.setNodes(expressionList.toArray(new Node[]{}));
+            methodOperatorNode.setContext(conditionNode);
+            conditionNode = methodOperatorNode;
+        }
+        return conditionNode;
     }
 
     protected String tokensToCode(List<Token> tokenList) {
