@@ -156,7 +156,7 @@ public class ParserExpression<T, R extends B, B> {
     }
 
     /**
-     * добавляет оператор разграничения аргументов для функции ({@link ParserExpression#setFunction(String, Function, Function)})
+     * добавляет оператор разграничения аргументов для функции
      * @param delimiter знак оператора
      */
     public void addDelimiter(String delimiter) {

@@ -2,56 +2,62 @@ package thedivazo.wrapper;
 
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
-import thedivazo.parserexpression.wrappers.Handler;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 
-public class PlayerWrapper extends Handler<Player> {
+public class PlayerWrapper extends AbstractWrapperObject<Player> {
 
-    LocationWrapper locationWrapper = new LocationWrapper(input.getLocation());
-    PlayerInventoryWrapper playerInventoryWrapper = new PlayerInventoryWrapper(input.getInventory());
-    WorldWrapper worldWrapper = new WorldWrapper(input.getWorld());
+    LocationWrapper locationWrapper = null;
+    PlayerInventoryWrapper playerInventoryWrapper = null;
+    WorldWrapper worldWrapper = null;
 
-    protected PlayerWrapper(Player player) {
+    public PlayerWrapper(@Nullable Player player) {
+        super(player);
+        if(!Objects.isNull(player)) {
+            locationWrapper = new LocationWrapper(player.getLocation());
+            playerInventoryWrapper = new PlayerInventoryWrapper(player.getInventory());
+            worldWrapper = new WorldWrapper(player.getWorld());
+        }
+        addMethod(methods, "getLocation", () -> locationWrapper);
+        addMethod(methods,"getWorld", () -> worldWrapper);
 
-        super("player", player);
-        methods.put("getLocation", (EmptyMethod<LocationWrapper>) () -> locationWrapper);
-        methods.put("getWorld", (EmptyMethod<WorldWrapper>) () -> worldWrapper);
+        addMethod(methods,"getDisplayName", ()->player.getDisplayName());
+        addMethod(methods,"getExp", ()->player.getExp());
+        addMethod(methods,"getHealthScale", ()->player.getHealthScale());
+        addMethod(methods,"getLevel", ()->player.getLevel());
+        addMethod(methods,"getWalkSpeed", ()->player.getWalkSpeed());
+        addMethod(methods,"getTotalExperience", ()->player.getTotalExperience());
+        addMethod(methods,"isSleepingIgnore", ()->player.isSleepingIgnored());
+        addMethod(methods,"isSneaking", ()->player.isSneaking());
+        addMethod(methods,"isSprinting", ()->player.isSprinting());
+        addMethod(methods,"isFlying", ()->player.isFlying());
+        addMethod(methods,"getPlayerWeather", () -> Objects.toString(player.getPlayerWeather(), "no"));
+        addMethod(methods,"getExhaustion", ()->player.getExhaustion());
+        addMethod(methods,"getExpToLevel", ()->player.getExpToLevel());
+        addMethod(methods,"getFoodLevel", ()->player.getFoodLevel());
+        addMethod(methods,"getSaturation", ()->player.getSaturation());
+        addMethod(methods,"isBlocking", ()->player.isBlocking());
 
-        methods.put("getDisplayName", (EmptyMethod<String>) player::getDisplayName);
-        methods.put("getExp", (EmptyMethod<Float>) player::getExp);
-        methods.put("getHealthScale", (EmptyMethod<Double>) player::getHealthScale);
-        methods.put("getLevel", (EmptyMethod<Integer>) player::getLevel);
-        methods.put("getWalkSpeed", (EmptyMethod<Float>) player::getWalkSpeed);
-        methods.put("getTotalExperience", (EmptyMethod<Integer>) player::getTotalExperience);
-        methods.put("isSleepingIgnore", (EmptyMethod<Boolean>) player::isSleepingIgnored);
-        methods.put("isSneaking", (EmptyMethod<Boolean>) player::isSneaking);
-        methods.put("isSprinting", (EmptyMethod<Boolean>) player::isSprinting);
-        methods.put("isFlying", (EmptyMethod<Boolean>) player::isFlying);
-        methods.put("getPlayerWeather", (EmptyMethod<String>) () -> Objects.toString(player.getPlayerWeather(), "no"));
-        methods.put("getExhaustion", (EmptyMethod<Float>) player::getExhaustion);
-        methods.put("getExpToLevel", (EmptyMethod<Integer>) player::getExpToLevel);
-        methods.put("getFoodLevel", (EmptyMethod<Integer>) player::getFoodLevel);
-        methods.put("getSaturation", (EmptyMethod<Float>) player::getSaturation);
-        methods.put("isBlocking", (EmptyMethod<Boolean>) player::isBlocking);
+        addMethod(methods,"isGlowing", ()->player.isGlowing());
+        addMethod(methods,"isInWater", ()->player.isInWater());
 
-        methods.put("isGlowing", (EmptyMethod<Boolean>) player::isGlowing);
-        methods.put("isOnGround", (EmptyMethod<Boolean>) player::isOnGround);
+        addMethod(methods,"isGliding", ()->player.isGliding());
+        addMethod(methods,"isInvisible", ()-> player.getActivePotionEffects().stream().anyMatch(p->p.getType() == PotionEffectType.INVISIBILITY));
+        addMethod(methods,"isSleeping", ()->player.isSleeping());
+        addMethod(methods, "isSwimming", ()->player.isSwimming());
 
-        methods.put("isGliding", (EmptyMethod<Boolean>) player::isGliding);
-        methods.put("isInvisible", (EmptyMethod<Boolean>) ()-> player.getActivePotionEffects().stream().anyMatch(p->p.getType() == PotionEffectType.INVISIBILITY));
-        methods.put("isSleeping", (EmptyMethod<Boolean>) player::isSleeping);
-        //methods.put("isSwimming", (EmptyMethod<Boolean>)player::);
-
-        methods.put("hasPotionEffect", (UnaryMethod<Boolean, String>) (input)->{
-            PotionEffectType potionEffectType = PotionEffectType.getByName(input);
-            if(potionEffectType == null) throw new IllegalArgumentException("effect \""+input+"\" does not exist");
+        addMethod(methods,"hasPotionEffect", (ArgMethod<Boolean>) arg->{
+            String potionName = arg[0].toString();
+            PotionEffectType potionEffectType = PotionEffectType.getByName(potionName);
+            if(potionEffectType == null) throw new IllegalArgumentException("effect \""+potionName+"\" does not exist");
             return player.hasPotionEffect(potionEffectType);
         });
 
-        methods.put("getPotionEffect", (UnaryMethod<PotionEffectWrapper, String>) (input)->{
-            PotionEffectType potionEffectType = PotionEffectType.getByName(input);
-            if(potionEffectType == null) throw new IllegalArgumentException("effect \""+input+"\" does not exist");
+        addMethod(methods,"getPotionEffect", (ArgMethod<PotionEffectWrapper>) (arg)->{
+            String potionName = arg[0].toString();
+            PotionEffectType potionEffectType = PotionEffectType.getByName(potionName);
+            if(potionEffectType == null) throw new IllegalArgumentException("effect \""+potionName+"\" does not exist");
             return new PotionEffectWrapper(player.getPotionEffect(potionEffectType));
         });
 

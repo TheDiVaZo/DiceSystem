@@ -21,6 +21,7 @@ import thedivazo.parserexpression.ParserExpression;
 import thedivazo.parserexpression.exception.CompileException;
 import thedivazo.utils.TernFunction;
 import thedivazo.utils.TernaryOperator;
+import thedivazo.wrapper.*;
 
 import java.lang.constant.Constable;
 import java.math.BigDecimal;
@@ -46,11 +47,11 @@ import java.util.regex.Pattern;
 @ApiVersion(value = ApiVersion.Target.v1_13)
 public class DiceSystem extends JavaPlugin {
     @Getter
-    private final DiceManager<Player> diceManager = new DiceManager<>();
+    private final DiceManager diceManager = new DiceManager();
 
     @Getter
     @Setter
-    private ParserExpression<Player, Constable, Object> parserExpression;
+    private ParserExpression<Player, Constable, Constable> parserExpression;
 
     private PaperCommandManager commandManager;
     private static ConfigManager configManager;
@@ -132,10 +133,9 @@ public class DiceSystem extends JavaPlugin {
     protected void generateDefaultParser() {
         parserExpression = new ParserExpression<>();
 
-        //String type variable
-        parserExpression.setCondition("'.+?'", (input, string)->string.substring(1,string.length()-1));
+        parserExpression.setCondition("'.*?'", (input, string)->string.substring(1,string.length()-1));
 
-//arithmetic operators
+        //arithmetic operators
         // unary "-"
         parserExpression.addUnaryOperator(
                 new ParserExpression.UnaryOperatorWrapper<>() {
@@ -145,7 +145,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public Function<Object, Constable> getUnaryOperator() {
+                    public Function<Constable, Constable> getUnaryOperator() {
                         return object -> {
                             if(NumberUtils.isCreatable(object.toString())) return -NumberUtils.createDouble(object.toString());
                             else return BooleanUtils.toBoolean(object.toString());
@@ -161,7 +161,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble * (Double) aDouble2;
                     }
                 },
@@ -172,7 +172,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(double)((int) ((Double) aDouble / (Double) aDouble2));
                     }
                 },
@@ -183,7 +183,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble / (Double) aDouble2;
                     }
                 },
@@ -194,7 +194,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) ->(Double) aDouble % (Double) aDouble2;
                     }
                 });
@@ -207,12 +207,12 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (object1, object2)->{
                             if(object1 instanceof Double double1 && object2 instanceof Double double2)
                                 return double1+double2;
-                            else if(object1 instanceof Double double1) return new BigDecimal(double1).stripTrailingZeros().toPlainString() + object2.toString();
-                            else if(object2 instanceof Double double2) return object1.toString() + new BigDecimal(double2).stripTrailingZeros().toPlainString();
+                            else if(object1 instanceof Double double1) return NumberUtils.toScaledBigDecimal(double1).stripTrailingZeros().toPlainString() + object2.toString();
+                            else if(object2 instanceof Double double2) return object1.toString() + NumberUtils.toScaledBigDecimal(double2).stripTrailingZeros().toPlainString();
                             else return object1.toString()+object2.toString();
                         };
                     }
@@ -224,7 +224,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (aDouble, aDouble2) -> (Double) aDouble - (Double) aDouble2;
                     }
                 });
@@ -238,7 +238,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 <= (double) dob2;
                     }
                 },
@@ -249,7 +249,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 >= (double) dob2;
                     }
                 },
@@ -260,7 +260,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 < (double) dob2;
                     }
                 },
@@ -271,7 +271,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (dob1, dob2)->(double) dob1 > (double) dob2;
                     }
                 });
@@ -284,8 +284,8 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
-                        return Object::equals;
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
+                        return Constable::equals;
                     }
                 },
                 new ParserExpression.BinaryOperatorWrapper<>() {
@@ -295,7 +295,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (obj1, obj2)->!obj1.equals(obj2);
                     }
                 });
@@ -310,7 +310,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public Function<Object, Constable> getUnaryOperator() {
+                    public Function<Constable, Constable> getUnaryOperator() {
                         return (anyObject)->{
                             if(anyObject instanceof Double doubleObject) return -doubleObject;
                             else return  !(boolean) (anyObject);
@@ -326,7 +326,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 && (boolean) bol2;
                     }
                 });
@@ -339,7 +339,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public BiFunction<Object, Object, Constable> getBinaryOperator() {
+                    public BiFunction<Constable, Constable, Constable> getBinaryOperator() {
                         return (bol1, bol2)->(boolean) bol1 || (boolean) bol2;
                     }
                 });
@@ -359,7 +359,7 @@ public class DiceSystem extends JavaPlugin {
                     }
 
                     @Override
-                    public TernFunction<Boolean, Object, Object, Object> getTernaryOperator() {
+                    public TernFunction<Boolean, Constable, Constable, Constable> getTernaryOperator() {
                         return (cond1, cond2, cond3) -> cond1 ? cond2:cond3;
                     }
                 });
@@ -410,14 +410,33 @@ public class DiceSystem extends JavaPlugin {
             else return BooleanUtils.toBoolean(constable.toString());
         });
 
+        parserExpression.setFunction("emptyFunction", (input)-> 20d);
+
+
+        parserExpression.setCondition("true", true);
+        parserExpression.setCondition("false", false);
 
         //Condition and constant
         parserExpression.setCondition("PI", Math.PI);
         parserExpression.setCondition("E", Math.E);
-        parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
-        parserExpression.setCondition("true", true);
-        parserExpression.setCondition("false", false);
 
-        parserExpression.setAlternativeConditionParser(Double::parseDouble);
+        parserExpression.setCondition("[0-9]+(\\.[0-9]+)?", (player, sign)->NumberUtils.createDouble(sign));
+
+        parserExpression.setAlternativeConditionParser(NumberUtils::createDouble);
+        parserExpression.addDelimiter("\\,");
+        parserExpression.addSkipSymbols(" +");
+        parserExpression.addCompoundOperators("\\(","\\)");
+
+        parserExpression.addVariableStartSymbols("\\$");
+        parserExpression.addMethodReferenceSymbols("\\#");
+
+        parserExpression.setCondition("[a-zA-Z0-9\\.]+");
+
+        parserExpression.addObjects(
+                new LocationWrapper(null),
+                new PlayerInventoryWrapper(null),
+                new PotionEffectWrapper(null),
+                new WorldWrapper(null),
+                new PlayerWrapper(null));
     }
 }
