@@ -9,7 +9,7 @@ import java.util.Objects;
 
 @Getter
 @RequiredArgsConstructor
-public abstract class AbstractWrappedMethod<V> implements WrapperMethod<V> {
+public abstract class AbstractWrappedMethod<T, T1, V> implements WrapperMethod<T, T1, V> {
     @Getter
     private final String methodName;
     @Getter
@@ -18,7 +18,7 @@ public abstract class AbstractWrappedMethod<V> implements WrapperMethod<V> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof AbstractWrappedMethod<?> that)) return false;
+        if (!(o instanceof AbstractWrappedMethod that)) return false;
         return equals(that.getMethodName(), that.getArgumentTypes());
     }
 

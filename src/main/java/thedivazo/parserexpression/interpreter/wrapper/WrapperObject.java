@@ -11,13 +11,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public interface WrapperObject<T1> extends Constable {
-    T1 getObject();
+public interface WrapperObject<T, T1> extends Constable {
+    T getObject();
 
-    Set<WrapperMethod<?>> getMethods();
+    Set<String> getMethodsName();
     boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType);
-    boolean hasMethod(String nameMethod, Collection<?> methodArguments);
 
     @Nullable
-    Object executeMethod(String nameMethod, Collection<?> methodArguments) throws InterpreterException;
+    Object executeMethod(String nameMethod, T1... methodArguments) throws InterpreterException;
 }

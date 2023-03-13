@@ -1,5 +1,6 @@
 package thedivazo.wrapper;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import thedivazo.parserexpression.exception.InterpreterException;
@@ -9,89 +10,74 @@ import thedivazo.parserexpression.interpreter.wrapper.WrapperObject;
 import javax.annotation.Nullable;
 import java.lang.constant.ConstantDesc;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-public abstract class AbstractWrapperObject<T> implements WrapperObject<T> {
+public abstract class AbstractWrapperObject<T, T1> implements WrapperObject<T, T1> {
+
+    @Getter
+    protected final T object;
+
+    @Getter(AccessLevel.PROTECTED)
+    protected final Set<WrapperMethod<T, T1, ?>> wrapperMethodSet = new HashSet<>();
+
+    protected static <T2, T3, V1> void addMethod(Set<WrapperMethod<T2, T3,?>> methods, String name, ArgMethod<T2, T3, V1> methodBody, Class<?>... argumentTypes) {
+        WrapperMethod<T2, T3, V1> wrapperMethod = new AbstractWrappedMethod<>(name, argumentTypes) {
+            @Override
+            public V1 execute(WrapperObject<T2, T3> wrapperObjectContext, T3... arguments) {
+                return methodBody.getResult(wrapperObjectContext, arguments);
+            }
+
+            @Override
+            public Optional<? extends ConstantDesc> describeConstable() {
+                return Optional.empty();
+            }
+        };
+        methods.add(wrapperMethod);
+    }
+
+    protected static <T1,T2, V1> void addMethod(Set<WrapperMethod<T1,T2, ?>> methods,String name, NoArgMethod<T1,T2, V1> methodBody) {
+        WrapperMethod<T1,T2, V1> wrapperMethod = new AbstractWrappedMethod<T1,T2, V1>(name, new Class[0]) {
+            @Override
+            public V1 execute(WrapperObject<T1,T2> wrapperObjectContext, T2 ... arguments) {
+                return methodBody.getResult(wrapperObjectContext);
+            }
+
+            @Override
+            public Optional<? extends ConstantDesc> describeConstable() {
+                return Optional.empty();
+            }
+        };
+        methods.add(wrapperMethod);
+    }
+    @Override
+    public boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType) {
+        return getWrapperMethodSet().stream().anyMatch(wrapperMethod -> wrapperMethod.equals(nameMethod, methodArgumentsType));
+    }
 
     @Override
-    public Optional<? extends ConstantDesc> describeConstable() {
-        return Optional.empty();
+    public Set<String> getMethodsName() {
+        return getWrapperMethodSet().stream().map(WrapperMethod::getMethodName).collect(Collectors.toSet());
+    }
+
+    @Nullable
+    @Override
+    public Object executeMethod(String nameMethod, T1... methodArguments) throws InterpreterException {
+        if(Objects.isNull(object)) return null;
+        Optional<WrapperMethod<T, T1, ?>> wrapperMethodFinal = getWrapperMethodSet().stream().filter(wrapperMethod->wrapperMethod.equals(nameMethod, Arrays.stream(methodArguments).map(Object::getClass).toList().toArray(new Class[0]))).findFirst();
+        if(wrapperMethodFinal.isEmpty()) return null;
+        else return wrapperMethodFinal.get().execute(this, methodArguments);
     }
 
     interface AnyMethod<T>{}
 
     @FunctionalInterface
-    interface ArgMethod<T> extends AnyMethod<T> {
-        T getResult(Object... inputs);
+    interface ArgMethod<T,T1, V> extends AnyMethod<T> {
+        V getResult(WrapperObject<T, T1> wrapperObjectContext, T1... inputs);
     }
 
     @FunctionalInterface
-    interface NoArgMethod<T> extends AnyMethod<T> {
-        T getResult();
-    }
-
-
-    @Getter
-    @Nullable
-    protected final T object;
-    protected final Set<WrapperMethod<?>> methods = new HashSet<>();
-
-
-    @Override
-    public Set<WrapperMethod<?>> getMethods() {
-        return Collections.unmodifiableSet(methods);
-    }
-
-    protected WrapperMethod<?> getMethod(String nameMethod, Class<?>... methodArgumentsType) throws InterpreterException {
-        Optional<WrapperMethod<?>> optionalWrapperMethod = methods.stream().filter(wrapperMethod -> wrapperMethod.equals(nameMethod, methodArgumentsType)).findFirst();
-        if(optionalWrapperMethod.isEmpty()) throw new InterpreterException(String.format("ArgMethod \"%s\" not find", nameMethod));
-        return optionalWrapperMethod.orElseGet(null);
-    }
-
-    @Override
-    public boolean hasMethod(String nameMethod, Class<?>... methodArgumentsType) {
-        try {
-            getMethod(nameMethod, methodArgumentsType);
-            return true;
-        } catch (InterpreterException e) {
-            return false;
-        }
-    }
-
-    @Override
-    public boolean hasMethod(String nameMethod, Collection<?> methodArguments) {
-        return hasMethod(nameMethod, methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]));
-    }
-
-    protected boolean addMethod(WrapperMethod<?> wrapperMethod) {
-        return methods.add(wrapperMethod);
-    }
-
-    protected static <V> void addMethod(Set<WrapperMethod<?>> methods, String nameMethod, NoArgMethod<V> methodBody) {
-        addMethod(methods, nameMethod, methodBody, new Class<?>[0]);
-    }
-    protected static <V> void addMethod(Set<WrapperMethod<?>> methods, String nameMethod, AnyMethod<V> methodBody, Class<?>... argumentsTypes) {
-        WrapperMethod<V> wrapperMethod = new AbstractWrappedMethod<V>(nameMethod, argumentsTypes) {
-            @Override
-            public Optional<? extends ConstantDesc> describeConstable() {
-                return Optional.empty();
-            }
-
-            @Override
-            public V execute(Object... arguments) {
-                if(methodBody instanceof AbstractWrapperObject.ArgMethod<V> argMethod) return argMethod.getResult(arguments);
-                else if(methodBody instanceof AbstractWrapperObject.NoArgMethod<V> noArgMethod) return noArgMethod.getResult();
-                else return null;
-            }
-
-        };
-        methods.add(wrapperMethod);
-    }
-
-
-    @Override
-    public Object executeMethod(String nameMethod, Collection<?> methodArguments) throws InterpreterException {
-        WrapperMethod<?> method = getMethod(nameMethod, methodArguments.stream().map(Object::getClass).toList().toArray(new Class[0]));
-        return method.execute(methodArguments.toArray(new Object[0]));
+    interface NoArgMethod<T,T1, V> extends AnyMethod<T> {
+        V getResult(WrapperObject<T, T1> wrapperObjectContext);
     }
 }
