@@ -1,0 +1,118 @@
+version: 1.0
+
+settings:
+  evaluator:
+    JavaScript: "J2V8" #.js
+    Python: "Jython" #.py
+    DenizenScript: "Denizen" #.dsc
+    SkriptLang: "Skript" #.sk
+    #Вы так же можете подключить любой другой скриптовый язык с помощью аддона.
+    #[название_языка]: "[название_аддона]"
+    #Если вам не хватает возможности скриптовых языков, вы можете использовать аддоны на готовые скрипты
+    Other: #Для подключения готового скрипта, введите его название в список ниже
+      AddonPlugin_1 
+      AddonPlugin_2
+
+types-of-dices:
+  #пример дайса
+  attack: #Название дайса/группы дайсов
+    type: "dice" #Явно указанный тип секции. Либо "group", либо "dice"
+    #group - группа дайсов
+    #dice - сам дайс
+    #Можно явно не указывать. Тип секции будет определен в зависимости от его содержимого.
+    permission: "attack" #dicesystem.attack - Пермишен на использование дайса.
+    #Если пермишен не указан, то по умолчанию дайс доступен всем игрокам.
+    language: "JavaScript" #Нужно, если вы хотите явно указать язык программирования. Игнорирует расширение файла.
+    #Если поле не указано, язык будет выбран на основе расширения файла.
+    execution: "./all_attack.js" #Путь к скрипту, написанный на соответствующем языке.
+    #Вы так же можете использовать плагины-аддоны. Просто укажите название плагина-аддона.
+    message: #Сообщения при бросании дайса. Поле не обязательное, так как можно посылать сообщения через скрипт
+      message-this-player: "Вы кинули дайс на атаку: $dice" #Сообщение, которое будет отправлено игроку, кинувшему дайс
+      message-other-player: "Player $this_player throw attack dice: $dice" #Сообщение, которое будет отправлено рядом стоящим игрокам.
+      message-other-radius: 10 #Радиус отправки сообщения другим игрокам.
+      #$dice - переменная, которая содержит результат выполнения скрипта. Либо строка, либо null, если скрипт ничего не возвращает.
+      #$this_player - имя игрока, бросивший дайс
+      #$other_player - имя игрока, видящий сообщение о броске дайса.
+  #дайсы с неодним скриптом
+  many-script:
+    type: "dice"
+    permission: "many_script" #dicesystem.many_script
+    language: "JavaScript" #Если скрипты написаны на одном и том же языке, можно явно указать язык.
+    execution: #Путь к скриптам может указываться в виде списка или массива. Исполняются сверху вниз / справа на лево.
+      - "./script_1.js"
+      - "./script_2.js"
+  randon-script:
+    type: "dice"
+    permission: "random_script" #dicesystem.random_script
+    #Указывать язык для нескольких скриптов, имеющих разное расширение, не нужно.
+    execution:
+      - "./script_1.py"
+      - "./script_2.js"
+      - "./script_3.js"
+      - "./script_4.py"
+      - "./script_5.dsc"
+  addon-script: #Подключение аддона к дайсу
+    type: "dice"
+    permission: "addon_dice" #dicesystem.addon_dice
+    execution: "AddonPlugin_1" #Чтобы аддон сработал, вам необходимо подключить его, прописав его название.
+    #При этом поле 'language' не указывается
+  #Неявное приведение типов секции
+  auto-group-1:
+    #Можно явно не указывать тип секции
+    #Данная секция будет преобразованна в группу, так как содержит вложенный элемент auto-dice
+    permission: "auto_group_1" #dicesystem.auto_group_1
+    auto-dice:
+      #Данная секция будет преобразованная в 'dice', так как не содержит вложенные элементы и содержит список исполняемых скриптов.
+      permission: "auto_dice_1" #dicesystem.auto_group.auto_dice
+      execution:
+        - "./script_1.py"
+        - "./script_2.js"
+
+  #Пример группировки дайсов
+  group-defend: #Некоторая группа дайсов
+    type: "group"
+    #Данная группа не имеет пермишенов. По умолчанию, все элементы этой группы доступны без пермишенов
+    green-defend: #Вложенная группа. Вложенных групп может быть сколько угодно
+      type: "group"
+      permission: "green" #dicesystem.green - пермишен группы
+      #dicesystem.green.[dice_permission] - пермишен к определенному дайсу в группе
+      #dicesystem.green.* - пермишен ко всем дайсам в группе
+      ork-defend:
+        type: "dice"
+        permission: "ork_defend" #dicesystem.green.ork_defend - пермишен к этому дайсу в группе.
+        execution: "./ork_defend.js" #путь до скрипта может быть любым.
+        #Не указаны поля message. Значит, отправка сообщения должна осуществляться через скрипт.
+  #Пример группировки дайсов с пермишенами.
+  group-perm1:
+    type: "group"
+    permission: "g_perm1" #dicesystem.g_perm1
+    dice-perm1:
+      type: "dice"
+      permission: "d_perm1" #dicesystem.g_perm1.d_perm1 - так как дайс dice-perm1 находится в группе group-perm1, то его пермишен включает пермишен группы group-perm1.
+      #Для упрощения мы упустим остальные поля секции дайсов
+    group-perm2:
+      type: "group"
+      #группа без пермишена
+      group-perm3:
+        type: "group"
+        permission: "g_perm3" #dicesystem.g_perm1.g_perm3
+        dice-perm2:
+          type: "dice"
+          permission: "d_perm2" #dicesystem.g_perm1.g_perm3.d_perm2
+
+  group-lang:
+    type: "group"
+    language: "JavaScript" #можно явно указать язык исполнения скрипта для всех элементов группы.
+    dice-lang-1:
+      type: "dice"
+      execution: "./dice_lang_1.js"
+    dice-lang-2:
+      type: "dice"
+      execution: "./dice_lang_2.js"
+    dice-lang-3:
+      type: "dice"
+      language: "Python" #Если явно указан другой язык, то скрипты будут исполняться только на нем, а язык родительской группы будет игнорироваться.
+      execution:
+        - "./dice_lang_3.js"
+        - "./dice_lang_3.py"
+
