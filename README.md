@@ -21,8 +21,6 @@ If you are thinking about creating your own addon, you will need [Documentation 
 
 
 ## Useful Links
-
----
 [📁 Last releases](https://github.com/TheDiVaZo/DiceSystem/releases)
 
 [⚙ Discord Support](https://discord.gg/63HsJutrxs)
