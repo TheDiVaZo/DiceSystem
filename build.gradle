@@ -8,6 +8,8 @@ group 'org.thedivazo.dicesystem'
 version '1.0.0'
 
 repositories {
+    maven { url = "https://repo.aikar.co/content/groups/aikar/" }
+    maven { url = "https://hub.spigotmc.org/nexus/content/groups/public/" }
     maven {
         url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
     }
@@ -19,6 +21,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly "org.spigotmc:spigot-api:1.15.2-R0.1-SNAPSHOT"
+    implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
     implementation 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'
     compileOnly 'org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT'
@@ -49,6 +53,15 @@ jar {
     }
 }
 
-shadowJar {
-
+compileJava {
+    options.compilerArgs += ["-parameters"]
+    options.fork = true
+    options.forkOptions.executable = 'javac'
 }
+
+shadowJar {
+    relocate 'co.aikar.commands', 'org.thedivazo.acf'
+    relocate 'co.aikar.locales', 'org.thedivazo.acf.locales'
+}
+
+build.dependsOn shadowJar

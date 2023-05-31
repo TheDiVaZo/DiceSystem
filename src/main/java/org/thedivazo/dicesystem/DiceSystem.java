@@ -1,24 +1,29 @@
 package org.thedivazo.dicesystem;
 
-import lombok.Getter;
-import org.bukkit.configuration.ConfigurationSection;
+import co.aikar.commands.PaperCommandManager;
+import com.google.common.collect.ImmutableList;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.checkerframework.checker.units.qual.C;
+import org.thedivazo.dicesystem.command.DefaultCommand;
 import org.thedivazo.dicesystem.config.ConfigWrapper;
 import org.thedivazo.dicesystem.dice.DefaultDice;
 import org.thedivazo.dicesystem.dice.Dice;
 import org.thedivazo.dicesystem.dice.Side;
 import org.thedivazo.dicesystem.dice.exception.WeightArgumentException;
 import org.thedivazo.dicesystem.logging.Logger;
-import org.thedivazo.dicesystem.logging.LoggerHandler;
 import org.thedivazo.dicesystem.logging.handlers.JULHandler;
 
 import java.util.*;
 
 public class DiceSystem extends JavaPlugin {
     Map<String, Dice<?>> diceMap = new HashMap<>();
+
+    public Map<String, Dice<?>> getDiceMap() {
+        return Collections.unmodifiableMap(diceMap);
+    }
     ConfigWrapper configWrapper;
+
+    PaperCommandManager manager;
 
     private static DiceSystem instance;
 
@@ -68,6 +73,13 @@ public class DiceSystem extends JavaPlugin {
             Logger.info("Dice '"+diceName+"' ("+diceTitle+") successfully uploaded!");
         }
         Logger.info("All dice have been loaded");
+    }
+
+    public void loadCommand() {
+        manager = new PaperCommandManager(this);
+        manager.getCommandCompletions().registerCompletion("diceTitles", c -> ImmutableList.copyOf(diceMap.keySet()));
+        manager.registerDependency(DiceSystem.class, this);
+        manager.registerCommand(new DefaultCommand());
     }
 
     @Override
