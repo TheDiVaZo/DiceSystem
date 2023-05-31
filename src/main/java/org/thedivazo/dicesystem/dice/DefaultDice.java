@@ -21,20 +21,6 @@ public final class DefaultDice<T> implements Dice<T> {
 
     private final double[] cumProbability;
 
-    @SafeVarargs
-    private DefaultDice(String name, Side<T>... sides) {
-        this.name = name;
-        this.sides = List.of(sides);
-        this.cumProbability = new double[sides.length];
-        double localCumSum = 0;
-        for (int i = 0; i < sides.length; i++) {
-            Side<T> side = sides[i];
-            localCumSum += side.weight();
-            cumProbability[i] = localCumSum;
-        }
-        this.cumSum = localCumSum;
-    }
-
     private DefaultDice(String name, List<Side<T>> sides) {
         this.name = name;
         this.sides = List.copyOf(sides);
