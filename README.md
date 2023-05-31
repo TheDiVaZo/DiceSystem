@@ -15,11 +15,6 @@ General plugin [wiki](https://github.com/TheDiVaZo/DiceSystem/wiki)
 
 If you are working with the plugin for the first time, you can read the [Getting started guide](https://github.com/TheDiVaZo/DiceSystem/wiki).
 
-You can also check out the [Config documentation](https://github.com/TheDiVaZo/DiceSystem/wiki)
-
-If you are thinking about creating your own addon, you will need [Documentation for creating addons](https://github.com/TheDiVaZo/DiceSystem/wiki)
-
-
 ## Useful Links
 [📁 Last releases](https://github.com/TheDiVaZo/DiceSystem/releases)
 
