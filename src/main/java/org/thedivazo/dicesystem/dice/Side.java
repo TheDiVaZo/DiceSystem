@@ -5,10 +5,19 @@ import org.thedivazo.dicesystem.dice.exception.WeightArgumentException;
 
 import java.util.Objects;
 
+/**
+ * A class that describes the side of dice
+ * @param <T> The type of the object contained in the side
+ */
 public class Side<T> {
     private final T value;
     private final double weight;
 
+    /**
+     * @param value object contained in the side
+     * @param weight Side weight in dice
+     * @throws WeightArgumentException If the weight is zero or less.
+     */
     public Side(T value, double weight) throws WeightArgumentException {
         if (weight <= 0) throw new WeightArgumentException();
         this.value = value;
@@ -28,8 +37,7 @@ public class Side<T> {
         if (obj == this) return true;
         if (obj == null || obj.getClass() != this.getClass()) return false;
         var that = (Side) obj;
-        return Objects.equals(this.value, that.value) &&
-                Double.doubleToLongBits(this.weight) == Double.doubleToLongBits(that.weight);
+        return Objects.equals(this.value, that.value) && this.weight == that.weight;
     }
 
     @Override
