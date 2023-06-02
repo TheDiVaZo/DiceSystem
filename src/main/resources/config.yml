@@ -5,6 +5,8 @@ settings:
     radius: 10.4 # in blocks
     format-thrower: "You throw dice {roll}" #placeholders and {dice_name}, {dice_title}, {roll}, {roll_probability}, {thrower_name}
     format-seer: "Player {thrower_name} throw dice {roll}" #placeholders and {dice_name}, {dice_title}, {roll}, {roll_probability}, {thrower_name}, {seer_name}
+    no-permission: "You have not permission to use this dice"  #placeholders and {dice_name}, {dice_title}, {player_name}
+    dice-not-found: "Dice has not valid!"
 
 dices:
   test-d-4:
