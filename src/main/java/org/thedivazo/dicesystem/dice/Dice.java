@@ -1,5 +1,6 @@
 package org.thedivazo.dicesystem.dice;
 
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.thedivazo.dicesystem.dice.exception.WeightArgumentException;
 
@@ -24,15 +25,18 @@ public interface Dice<T> {
      * If there is no side with this value, 0 is returned.
      * If the dice has only this value, then 1 is returned
      */
-    double getProbability(T value);
+    double getProbability(Object value);
 
     /**
      * @return Throws dice and returns a random value, given the weight of the sides.
      */
     T roll();
 
+    @Nullable String getPermission();
+
     interface DiceBuilder<T> {
         DiceBuilder<T> setName(String name);
+        DiceBuilder<T> setPermission(String permission);
         DiceBuilder<T> setSides(List<Side<T>> sides);
         DiceBuilder<T> addSide(Side<T> side);
         DiceBuilder<T> addSide(T value, double weight) throws WeightArgumentException;

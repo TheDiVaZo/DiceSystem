@@ -8,6 +8,7 @@ group 'org.thedivazo.dicesystem'
 version '1.0.0'
 
 repositories {
+    maven { url = "https://mvnrepository.com/artifact/org.mockito/mockito-core" }
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
     maven { url = "https://hub.spigotmc.org/nexus/content/groups/public/" }
     maven {
@@ -27,10 +28,11 @@ dependencies {
     implementation "co.aikar:acf-paper:0.5.1-SNAPSHOT"
     implementation 'org.projectlombok:lombok:1.18.26'
     annotationProcessor 'org.projectlombok:lombok:1.18.26'
-    compileOnly 'org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT'
     compileOnly 'me.clip:placeholderapi:2.10.9'
     compileOnly 'org.jetbrains:annotations:24.0.1'
 
+    compileOnly "org.spigotmc:spigot-api:1.18-R0.1-SNAPSHOT"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '2.1.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testImplementation 'org.projectlombok:lombok:1.18.26'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
@@ -58,7 +60,6 @@ jar {
 compileJava {
     options.compilerArgs += ["-parameters"]
     options.fork = true
-    options.forkOptions.executable = 'javac'
 }
 
 shadowJar {

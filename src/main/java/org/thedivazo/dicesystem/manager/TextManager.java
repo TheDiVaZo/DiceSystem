@@ -1,11 +1,14 @@
 package org.thedivazo.dicesystem.manager;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,6 +17,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TextManager {
 
     public static final Pattern HEX_PAT = Pattern.compile("&#[a-fA-F0-9]{6}");
@@ -24,10 +28,20 @@ public class TextManager {
 
     public static final Pattern CHAT_COLOR_PAT = Pattern.compile(ChatColor.COLOR_CHAR +"[0-9a-fxlnrkmo]");
 
-    private static final LocalPlaceholderManager localPlaceholderManager = new LocalPlaceholderManager();
+    public static final Pattern localPlaceholderPattern = Pattern.compile("\\{[a-zA-Z0-9_-]+}");
+
+    public static String setLocalPlaceholders(String text, Map<String, Object> placeholders) {
+        Matcher matcher = localPlaceholderPattern.matcher(text);
+        StringBuilder result = new StringBuilder(text);
+        while (matcher.find()) {
+            String placeholder = matcher.group();
+            result.replace(matcher.start(), matcher.end(), placeholders.getOrDefault(placeholder, placeholder).toString());
+        }
+        return result.toString();
+    }
 
     public static void sendMessage(Player player, String message, Map<String, Object> localPlaceholders) {
-        String preparedMessage = ofText(setPlaceholders(localPlaceholderManager.setPlaceholders(message, localPlaceholders), player));
+        String preparedMessage = ofText(setPlaceholders(setLocalPlaceholders(message, localPlaceholders), player));
         player.sendMessage(preparedMessage);
     }
 

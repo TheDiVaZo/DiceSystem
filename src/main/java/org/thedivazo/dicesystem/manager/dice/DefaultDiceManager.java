@@ -1,4 +1,4 @@
-package org.thedivazo.dicesystem.manager;
+package org.thedivazo.dicesystem.manager.dice;
 
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.thedivazo.dicesystem.config.ConfigWrapper;
@@ -15,21 +15,25 @@ public class DefaultDiceManager implements DiceManager {
 
     public void loadDices(ConfigWrapper configWrapper) throws InvalidConfigurationException, WeightArgumentException {
         Logger.info("Loading dice from config...");
+
         diceMap.clear();
         ConfigWrapper dicesSection = configWrapper.getRequiredConfigurationSection("dices");
         Set<String> diceTitles = dicesSection.getKeys(false);
         for (String diceTitle : diceTitles) {
             ConfigWrapper diceSection = dicesSection.getRequiredConfigurationSection(diceTitle);
             String diceName = diceSection.getRequiredString("name");
+            String dicePermission = diceSection.getString("permission", null);
             List<String> diceSides = diceSection.getRequireStringList("sides");
             Map<String, Double> weights = diceSection.getMap("prob-weight", Double.class, Collections.emptyMap());
             Dice.DiceBuilder<String> diceBuilder = DefaultDice.builder(diceName);
+            diceBuilder.setPermission(dicePermission);
             for (String diceSide : diceSides) {
                 diceBuilder.addSide(new Side<>(diceSide, weights.getOrDefault(diceSide, 1d)));
             }
             diceMap.put(diceTitle, diceBuilder.build());
             Logger.info("Dice '"+diceName+"' ("+diceTitle+") successfully uploaded!");
         }
+
         Logger.info("All dice have been loaded");
     }
 
@@ -42,7 +46,7 @@ public class DefaultDiceManager implements DiceManager {
     }
 
     @Override
-    public Set<String> getDiceTitle() {
+    public Set<String> getDiceTitles() {
         return diceMap.keySet();
     }
 }

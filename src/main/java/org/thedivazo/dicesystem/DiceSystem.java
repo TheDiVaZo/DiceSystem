@@ -3,7 +3,6 @@ package org.thedivazo.dicesystem;
 import co.aikar.commands.PaperCommandManager;
 import com.google.common.collect.ImmutableList;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.annotation.dependency.SoftDependency;
@@ -16,9 +15,10 @@ import org.thedivazo.dicesystem.config.ConfigWrapper;
 import org.thedivazo.dicesystem.dice.exception.WeightArgumentException;
 import org.thedivazo.dicesystem.logging.Logger;
 import org.thedivazo.dicesystem.logging.handlers.JULHandler;
-import org.thedivazo.dicesystem.manager.ConfigManager;
-import org.thedivazo.dicesystem.manager.DefaultDiceManager;
-import org.thedivazo.dicesystem.manager.DiceManager;
+import org.thedivazo.dicesystem.manager.config.ConfigManager;
+import org.thedivazo.dicesystem.manager.dice.DefaultDiceManager;
+
+import java.util.Objects;
 
 @Plugin(
         name = "DiceSystem",
@@ -31,13 +31,8 @@ import org.thedivazo.dicesystem.manager.DiceManager;
 public class DiceSystem extends JavaPlugin {
 
     @Getter
-    @Setter
-    private DiceManager diceManager;
-
     private ConfigManager configManager;
-    ConfigWrapper configWrapper;
-
-    PaperCommandManager manager;
+    private PaperCommandManager commandManager;
 
     private static DiceSystem instance;
 
@@ -52,32 +47,50 @@ public class DiceSystem extends JavaPlugin {
     public void onEnable() {
         super.onEnable();
         Logger.init(new JULHandler(getLogger()));
+        Logger.info("Enable plugin");
+
         saveDefaultConfig();
-        configWrapper = new ConfigWrapper(getConfig());
-        setDiceManager(new DefaultDiceManager());
-        configManager = new ConfigManager();
         try {
-            getDiceManager().loadDices(configWrapper);
-            configManager.loadConfig(configWrapper);
+            loadConfig();
         } catch (InvalidConfigurationException | WeightArgumentException e) {
             Logger.error(e.getMessage(), e);
         }
+        loadCommand();
+
+        Logger.info("Plugin ready to go");
+    }
+
+    public void loadConfig() throws WeightArgumentException, InvalidConfigurationException {
+        Logger.info("Config start load");
+
+        ConfigWrapper configWrapper = new ConfigWrapper(getConfig());
+        if (Objects.isNull(configManager)) configManager = new ConfigManager();
+        configManager.loadConfig(configWrapper);
+
+        Logger.info("Config loaded");
     }
 
 
     public void reload() throws WeightArgumentException, InvalidConfigurationException {
         Logger.info("Plugin reload started...");
+
         reloadConfig();
-        configWrapper = new ConfigWrapper(getConfig());
-        getDiceManager().loadDices(configWrapper);
-        configManager.loadConfig(configWrapper);
+        loadConfig();
+        loadCommand();
+
+        Logger.info("Plugin reloaded");
     }
 
     public void loadCommand() {
-        manager = new PaperCommandManager(this);
-        manager.getCommandCompletions().registerCompletion("diceTitles", c -> ImmutableList.copyOf(getDiceManager().getDiceTitle()));
-        manager.registerDependency(DiceSystem.class, this);
-        manager.registerCommand(new DefaultCommand());
+        Logger.info("Commands start loading...");
+
+        commandManager = new PaperCommandManager(this);
+        commandManager.getCommandCompletions().registerCompletion("diceTitles", c -> ImmutableList.copyOf(getConfigManager().getDiceManager().getDiceTitles()));
+        commandManager.registerDependency(ConfigManager.class, getConfigManager());
+        commandManager.registerDependency(DiceSystem.class, this);
+        commandManager.registerCommand(new DefaultCommand());
+
+        Logger.info("Commands loaded");
     }
 
     @Override

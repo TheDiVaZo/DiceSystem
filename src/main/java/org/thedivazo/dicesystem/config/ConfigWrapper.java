@@ -86,7 +86,9 @@ public class ConfigWrapper {
         if(!configurationSection.contains(path)) return def;
         Map<String, V> result = new HashMap<>();
         for (String key : configurationSection.getKeys(false)) {
-            result.put(key, configurationSection.getObject(key, valueClazz));
+            Object value = configurationSection.get(key);
+            if (Objects.nonNull(value) && valueClazz.isNestmateOf(value.getClass()))
+                result.put(key, valueClazz.cast(value));
         }
         return result;
     }

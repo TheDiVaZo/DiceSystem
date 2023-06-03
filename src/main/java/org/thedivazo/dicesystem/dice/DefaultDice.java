@@ -1,6 +1,7 @@
 package org.thedivazo.dicesystem.dice;
 
 import lombok.*;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 import org.thedivazo.dicesystem.dice.exception.WeightArgumentException;
 
@@ -21,17 +22,14 @@ public final class DefaultDice<T> implements Dice<T> {
     @Getter
     private final String name;
 
+    @Getter
+    @Nullable
+    private final String permission;
+
     // cumulative sum
     private final double cumSum;
 
     // unmodifiable sides
-    @Getter
-    @Unmodifiable
-    private final List<Side<T>> sides;
-
-    private final double[] cumProbability;
-
-
     /**
      * When creating dice, the list with sides is copied,
      * after which, based on the weight of the sides,
@@ -50,9 +48,31 @@ public final class DefaultDice<T> implements Dice<T> {
             cumProbability[i] = localCumSum;
         }
         this.cumSum = localCumSum;
+        this.permission = null;
     }
 
-    public double getProbability(T value) {
+    private DefaultDice(String name, String permission, List<Side<T>> sides) {
+        this.name = name;
+        this.sides = List.copyOf(sides);
+        this.cumProbability = new double[sides.size()];
+        double localCumSum = 0;
+        for (int i = 0; i < sides.size(); i++) {
+            Side<T> side = sides.get(i);
+            localCumSum += side.weight();
+            cumProbability[i] = localCumSum;
+        }
+        this.cumSum = localCumSum;
+        this.permission = permission;
+    }
+
+    @Getter
+    @Unmodifiable
+    private final List<Side<T>> sides;
+
+    private final double[] cumProbability;
+
+
+    public double getProbability(Object value) {
         Stream<Side<T>> filtered = sides.stream().filter(side -> side.value().equals(value));
         return filtered.mapToDouble(Side::weight).sum() / cumSum;
     }
@@ -88,6 +108,7 @@ public final class DefaultDice<T> implements Dice<T> {
      */
     public static class DiceBuilder<T> implements Dice.DiceBuilder<T> {
         private String name;
+        private String permission;
         private List<Side<T>> sides = new ArrayList<>();
 
         /**
@@ -111,6 +132,15 @@ public final class DefaultDice<T> implements Dice<T> {
          */
         public DiceBuilder<T> setName(String name) {
             this.name = name;
+            return this;
+        }
+
+        /**
+         * @param permission the permission to use dice
+         * @return current DiceBuilder
+         */
+        public DiceBuilder<T> setPermission(String permission) {
+            this.permission = permission;
             return this;
         }
 

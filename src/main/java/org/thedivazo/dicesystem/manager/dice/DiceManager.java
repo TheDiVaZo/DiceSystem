@@ -1,4 +1,4 @@
-package org.thedivazo.dicesystem.manager;
+package org.thedivazo.dicesystem.manager.dice;
 
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.thedivazo.dicesystem.config.ConfigWrapper;
@@ -12,5 +12,5 @@ public interface DiceManager {
     Dice<?> getDice(String diceTitle);
     boolean isDice(String diceTitle);
 
-    Set<String> getDiceTitle();
+    Set<String> getDiceTitles();
 }
